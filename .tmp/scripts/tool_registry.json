@@ -4,7 +4,7 @@
   "tools": [
     {
       "name": "scrape_google_maps",
-      "script": "execution/scrape_google_maps.py",
+      "script": ".tmp/scripts/scrape_google_maps.py",
       "description": "Scrape business listings from Google Maps via Apify",
       "category": "lead_generation",
       "tags": ["scraping", "google-maps", "leads"],
@@ -24,7 +24,7 @@
     },
     {
       "name": "gmaps_lead_pipeline",
-      "script": "execution/gmaps_lead_pipeline.py",
+      "script": ".tmp/scripts/gmaps_lead_pipeline.py",
       "description": "Full pipeline: scrape Google Maps + enrich contacts + save to Google Sheets",
       "category": "lead_generation",
       "tags": ["pipeline", "scraping", "enrichment", "google-sheets"],
@@ -46,7 +46,7 @@
     },
     {
       "name": "gmaps_parallel_pipeline",
-      "script": "execution/gmaps_parallel_pipeline.py",
+      "script": ".tmp/scripts/gmaps_parallel_pipeline.py",
       "description": "Parallel Google Maps pipeline for high-volume scraping",
       "category": "lead_generation",
       "tags": ["pipeline", "scraping", "parallel", "high-volume"],
@@ -63,7 +63,7 @@
     },
     {
       "name": "enrich_emails",
-      "script": "execution/enrich_emails.py",
+      "script": ".tmp/scripts/enrich_emails.py",
       "description": "Enrich missing emails in a Google Sheet using AnyMailFinder",
       "category": "lead_generation",
       "tags": ["enrichment", "email", "google-sheets"],
@@ -78,7 +78,7 @@
     },
     {
       "name": "scrape_apify",
-      "script": "execution/scrape_apify.py",
+      "script": ".tmp/scripts/scrape_apify.py",
       "description": "Generic Apify actor runner for web scraping",
       "category": "lead_generation",
       "tags": ["scraping", "apify"],
@@ -94,7 +94,7 @@
     },
     {
       "name": "scrape_apify_parallel",
-      "script": "execution/scrape_apify_parallel.py",
+      "script": ".tmp/scripts/scrape_apify_parallel.py",
       "description": "Run multiple Apify actors in parallel",
       "category": "lead_generation",
       "tags": ["scraping", "apify", "parallel"],
@@ -109,7 +109,7 @@
     },
     {
       "name": "read_sheet",
-      "script": "execution/read_sheet.py",
+      "script": ".tmp/scripts/read_sheet.py",
       "description": "Read data from a Google Sheet",
       "category": "google_sheets",
       "tags": ["google-sheets", "read"],
@@ -126,7 +126,7 @@
     },
     {
       "name": "append_to_sheet",
-      "script": "execution/append_to_sheet.py",
+      "script": ".tmp/scripts/append_to_sheet.py",
       "description": "Append rows to a Google Sheet",
       "category": "google_sheets",
       "tags": ["google-sheets", "write"],
@@ -143,7 +143,7 @@
     },
     {
       "name": "update_sheet",
-      "script": "execution/update_sheet.py",
+      "script": ".tmp/scripts/update_sheet.py",
       "description": "Update specific cells in a Google Sheet",
       "category": "google_sheets",
       "tags": ["google-sheets", "write", "update"],
@@ -160,7 +160,7 @@
     },
     {
       "name": "instantly_autoreply",
-      "script": "execution/instantly_autoreply.py",
+      "script": ".tmp/scripts/instantly_autoreply.py",
       "description": "AI-powered auto-reply for Instantly.ai email campaigns",
       "category": "email",
       "tags": ["email", "instantly", "auto-reply"],
@@ -173,7 +173,7 @@
     },
     {
       "name": "instantly_create_campaigns",
-      "script": "execution/instantly_create_campaigns.py",
+      "script": ".tmp/scripts/instantly_create_campaigns.py",
       "description": "Create email campaigns in Instantly.ai",
       "category": "email",
       "tags": ["email", "instantly", "campaigns"],
@@ -188,7 +188,7 @@
     },
     {
       "name": "welcome_client_emails",
-      "script": "execution/welcome_client_emails.py",
+      "script": ".tmp/scripts/welcome_client_emails.py",
       "description": "Send welcome/onboarding emails to new clients",
       "category": "email",
       "tags": ["email", "onboarding", "welcome"],
@@ -201,7 +201,7 @@
     },
     {
       "name": "upwork_scraper",
-      "script": "execution/upwork_scraper.py",
+      "script": ".tmp/scripts/upwork_scraper.py",
       "description": "Scrape Upwork job listings",
       "category": "freelance",
       "tags": ["upwork", "scraping", "jobs"],
@@ -217,7 +217,7 @@
     },
     {
       "name": "upwork_apify_scraper",
-      "script": "execution/upwork_apify_scraper.py",
+      "script": ".tmp/scripts/upwork_apify_scraper.py",
       "description": "Scrape Upwork via Apify actor",
       "category": "freelance",
       "tags": ["upwork", "scraping", "apify"],
@@ -233,7 +233,7 @@
     },
     {
       "name": "upwork_proposal_generator",
-      "script": "execution/upwork_proposal_generator.py",
+      "script": ".tmp/scripts/upwork_proposal_generator.py",
       "description": "Generate AI-powered proposals for Upwork jobs",
       "category": "freelance",
       "tags": ["upwork", "proposals", "ai-generation"],
@@ -249,7 +249,7 @@
     },
     {
       "name": "video_editor_pipeline",
-      "script": "execution/video_editor_pipeline.py",
+      "script": ".tmp/scripts/video_editor_pipeline.py",
       "description": "Full video editing pipeline: silence removal, jump cuts, transitions, smart naming",
       "category": "video",
       "tags": ["video", "editing", "silence-removal", "transcription"],
@@ -271,7 +271,7 @@
     },
     {
       "name": "jump_cut_vad_singlepass",
-      "script": "execution/jump_cut_vad_singlepass.py",
+      "script": ".tmp/scripts/jump_cut_vad_singlepass.py",
       "description": "Remove silences from video using VAD (Voice Activity Detection)",
       "category": "video",
       "tags": ["video", "vad", "silence-removal"],
@@ -287,7 +287,7 @@
     },
     {
       "name": "insert_3d_transition",
-      "script": "execution/insert_3d_transition.py",
+      "script": ".tmp/scripts/insert_3d_transition.py",
       "description": "Add 3D swivel transitions between video cuts",
       "category": "video",
       "tags": ["video", "transitions", "3d"],
@@ -303,7 +303,7 @@
     },
     {
       "name": "transcribe_audio",
-      "script": "execution/transcribe_audio.py",
+      "script": ".tmp/scripts/transcribe_audio.py",
       "description": "Transcribe audio/video using OpenAI Whisper",
       "category": "audio",
       "tags": ["transcription", "whisper", "audio"],
@@ -318,7 +318,7 @@
     },
     {
       "name": "search_papers",
-      "script": "execution/search_papers.py",
+      "script": ".tmp/scripts/search_papers.py",
       "description": "Search academic papers via Semantic Scholar, arXiv, or Google Scholar",
       "category": "research",
       "tags": ["papers", "academic", "search"],
@@ -335,7 +335,7 @@
     },
     {
       "name": "fetch_paper",
-      "script": "execution/fetch_paper.py",
+      "script": ".tmp/scripts/fetch_paper.py",
       "description": "Download and extract text from an academic paper",
       "category": "research",
       "tags": ["papers", "download", "pdf"],
@@ -350,7 +350,7 @@
     },
     {
       "name": "compile_review_paper",
-      "script": "execution/compile_review_paper.py",
+      "script": ".tmp/scripts/compile_review_paper.py",
       "description": "Compile a review/survey paper from multiple sources",
       "category": "research",
       "tags": ["papers", "review", "compilation"],
@@ -365,7 +365,7 @@
     },
     {
       "name": "web_research",
-      "script": "execution/web_research.py",
+      "script": ".tmp/scripts/web_research.py",
       "description": "Research a topic using web search (SerpAPI/Google)",
       "category": "research",
       "tags": ["web", "search", "research"],
@@ -381,7 +381,7 @@
     },
     {
       "name": "serp_market_research",
-      "script": "execution/serp_market_research.py",
+      "script": ".tmp/scripts/serp_market_research.py",
       "description": "Market research using Google SERP results",
       "category": "research",
       "tags": ["market-research", "serp", "google"],
@@ -397,7 +397,7 @@
     },
     {
       "name": "pdf_to_markdown",
-      "script": "execution/pdf_to_markdown.py",
+      "script": ".tmp/scripts/pdf_to_markdown.py",
       "description": "Convert PDF files to Markdown text",
       "category": "document",
       "tags": ["pdf", "markdown", "conversion"],
@@ -413,7 +413,7 @@
     },
     {
       "name": "create_google_doc",
-      "script": "execution/create_google_doc.py",
+      "script": ".tmp/scripts/create_google_doc.py",
       "description": "Create a new Google Doc with content",
       "category": "document",
       "tags": ["google-docs", "create"],
@@ -429,7 +429,7 @@
     },
     {
       "name": "update_google_doc",
-      "script": "execution/update_google_doc.py",
+      "script": ".tmp/scripts/update_google_doc.py",
       "description": "Update content in an existing Google Doc",
       "category": "document",
       "tags": ["google-docs", "update"],
@@ -445,7 +445,7 @@
     },
     {
       "name": "create_proposal",
-      "script": "execution/create_proposal.py",
+      "script": ".tmp/scripts/create_proposal.py",
       "description": "Create a proposal document via PandaDoc",
       "category": "document",
       "tags": ["pandadoc", "proposal", "template"],
@@ -462,7 +462,7 @@
     },
     {
       "name": "generate_business_plan",
-      "script": "execution/generate_business_plan.py",
+      "script": ".tmp/scripts/generate_business_plan.py",
       "description": "Generate a comprehensive business plan document",
       "category": "planning",
       "tags": ["business-plan", "generation"],
@@ -479,7 +479,7 @@
     },
     {
       "name": "generate_project_plan",
-      "script": "execution/generate_project_plan.py",
+      "script": ".tmp/scripts/generate_project_plan.py",
       "description": "Generate a technical project plan with Gantt charts and WBS",
       "category": "planning",
       "tags": ["project-plan", "gantt", "wbs"],
@@ -496,7 +496,7 @@
     },
     {
       "name": "generate_meeting_minutes",
-      "script": "execution/generate_meeting_minutes.py",
+      "script": ".tmp/scripts/generate_meeting_minutes.py",
       "description": "Generate meeting minutes from audio/transcript",
       "category": "meetings",
       "tags": ["meetings", "minutes", "transcription"],
@@ -512,7 +512,7 @@
     },
     {
       "name": "compliance_checker",
-      "script": "execution/compliance_checker.py",
+      "script": ".tmp/scripts/compliance_checker.py",
       "description": "Check documents for Indian legal compliance",
       "category": "legal",
       "tags": ["compliance", "legal", "india"],
@@ -528,7 +528,7 @@
     },
     {
       "name": "compliance_tracker",
-      "script": "execution/compliance_tracker.py",
+      "script": ".tmp/scripts/compliance_tracker.py",
       "description": "Track compliance status across documents",
       "category": "legal",
       "tags": ["compliance", "tracking"],
@@ -541,7 +541,7 @@
     },
     {
       "name": "legal_doc_generator",
-      "script": "execution/legal_doc_generator.py",
+      "script": ".tmp/scripts/legal_doc_generator.py",
       "description": "Generate legal documents from templates",
       "category": "legal",
       "tags": ["legal", "documents", "generation"],
@@ -557,7 +557,7 @@
     },
     {
       "name": "legal_research",
-      "script": "execution/legal_research.py",
+      "script": ".tmp/scripts/legal_research.py",
       "description": "Research Indian legal cases and regulations",
       "category": "legal",
       "tags": ["legal", "research", "india"],
@@ -572,7 +572,7 @@
     },
     {
       "name": "casualize_batch",
-      "script": "execution/casualize_batch.py",
+      "script": ".tmp/scripts/casualize_batch.py",
       "description": "Casualize/humanize text fields in batch using AI",
       "category": "data_processing",
       "tags": ["casualize", "batch", "ai"],
@@ -588,7 +588,7 @@
     },
     {
       "name": "casualize_city_names_batch",
-      "script": "execution/casualize_city_names_batch.py",
+      "script": ".tmp/scripts/casualize_city_names_batch.py",
       "description": "Casualize city names in a Google Sheet column",
       "category": "data_processing",
       "tags": ["casualize", "cities", "batch"],
@@ -603,7 +603,7 @@
     },
     {
       "name": "casualize_company_names_batch",
-      "script": "execution/casualize_company_names_batch.py",
+      "script": ".tmp/scripts/casualize_company_names_batch.py",
       "description": "Casualize company names in a Google Sheet column",
       "category": "data_processing",
       "tags": ["casualize", "companies", "batch"],
@@ -618,7 +618,7 @@
     },
     {
       "name": "casualize_first_names_batch",
-      "script": "execution/casualize_first_names_batch.py",
+      "script": ".tmp/scripts/casualize_first_names_batch.py",
       "description": "Casualize first names in a Google Sheet column",
       "category": "data_processing",
       "tags": ["casualize", "names", "batch"],
@@ -633,7 +633,7 @@
     },
     {
       "name": "onboarding_post_kickoff",
-      "script": "execution/onboarding_post_kickoff.py",
+      "script": ".tmp/scripts/onboarding_post_kickoff.py",
       "description": "Post-kickoff onboarding automation",
       "category": "crm",
       "tags": ["onboarding", "automation"],
@@ -646,7 +646,7 @@
     },
     {
       "name": "memory_db",
-      "script": "execution/memory_db.py",
+      "script": ".tmp/scripts/memory_db.py",
       "description": "SQLite+FTS5 persistent memory with STM/LTM, search, embeddings, guardrails",
       "category": "infrastructure",
       "tags": ["memory", "database", "search"],
@@ -659,7 +659,7 @@
     },
     {
       "name": "tool_registry",
-      "script": "execution/tool_registry.py",
+      "script": ".tmp/scripts/tool_registry.py",
       "description": "Manage and inspect execution tool schemas",
       "category": "infrastructure",
       "tags": ["tools", "registry", "schemas"],

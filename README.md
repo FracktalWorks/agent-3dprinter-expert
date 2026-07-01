@@ -74,22 +74,30 @@ Other tasks available:
 ## Structure
 
 ```
-3D Printer Expert/
-├── 3d-printer-expert.code-workspace # ← Double-click to open VS Code!
-├── setup.ps1 / setup.sh  # One-command setup scripts
-├── AGENTS.md             # System prompt for AI agents
-├── .env.example          # Template for API keys
-├── requirements.txt      # Python dependencies
-├── .github/agents/       # VS Code custom agent config
-├── .vscode/              # VS Code settings & tasks
-├── memory/               # Persistent memory database (auto-created)
-├── directives/           # What to do (SOPs)
-└── execution/            # How to do it (scripts)
+agent-3dprinter-expert/
+├── agent-3dprinter-expert.code-workspace # ← Double-click to open VS Code!
+├── setup.ps1 / setup.sh     # One-command setup scripts
+├── AGENTS.md                # Human + AI orientation document
+├── config.json              # CommandCenter contract
+├── agents.py                # build_agents() entry point
+├── instructions.md          # Agent purpose summary
+├── .env.example             # Template for API keys
+├── requirements.txt         # Python dependencies
+├── .github/
+│   ├── prompts/system.md    # Runtime system prompt
+│   ├── agents/              # VS Code Copilot Chat agent definition
+│   └── skills/3d-printer-expert/  # Skill: SKILL.md + scripts/
+├── .tmp/scripts/            # Shared utilities on PYTHONPATH
+├── agent-data/              # Reference data: catalogs, templates, docs
+├── inputs/                  # User-provided files
+├── outputs/                 # Debug reports and deliverables
+├── tests/                   # pytest suite — CI gate
+└── memory/                  # Persistent memory database
 ```
 
-## Available Directives
+## Available Skills
 
-- Create your own directives in `directives/`
+- **3D Printer Expert** (`.github/skills/3d-printer-expert/SKILL.md`) — Klipper log parsing, OctoPrint API, firmware config analysis, SSH management, data visualization, remote config editing, Klipper docs reference, ControlCenter codebase search
 
 ## Required API Keys
 

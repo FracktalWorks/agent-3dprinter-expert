@@ -57,8 +57,8 @@ commenting/uncommenting `[include]` lines — never edit the included files.
 
 - `.github/skills/3d-printer-expert/` — Skill instructions + diagnostic scripts
 - `.github/prompts/system.md` — System prompt loaded by agents.py at runtime
-- `directives/` — SOPs for debugging workflows
-- `execution/` — Shared utilities (memory, sheets, task graphs)
+- `.github/skills/3d-printer-expert/` — SOPs for debugging workflows
+- `.tmp/scripts/` — Shared utilities (memory, sheets, task graphs)
 - `agent-data/` — Reference data: Klipper error codes, thermistor tables, pin maps
 - `inputs/` — User-provided log files, configs, screenshots
 - `outputs/` — Debug reports and fixed configurations

@@ -4,29 +4,29 @@
 
 ## Tool Registry
 
-The tool registry (`execution/tool_registry.json`) provides formal JSON Schema definitions for every execution script. This enables structured tool discovery and validation.
+The tool registry (`.tmp/scripts/tool_registry.json`) provides formal JSON Schema definitions for every execution script. This enables structured tool discovery and validation.
 
 ### When to Use
-- **Before any task**: Run `python execution/tool_registry.py find "<query>"` to discover relevant tools
-- **Before calling a tool**: Run `python execution/tool_registry.py show <tool_name>` to get parameter schemas
-- **On setup**: Run `python execution/tool_registry.py validate` to verify all scripts exist and env vars are set
+- **Before any task**: Run `python .tmp/scripts/tool_registry.py find "<query>"` to discover relevant tools
+- **Before calling a tool**: Run `python .tmp/scripts/tool_registry.py show <tool_name>` to get parameter schemas
+- **On setup**: Run `python .tmp/scripts/tool_registry.py validate` to verify all scripts exist and env vars are set
 
 ### Commands
 ```bash
-python execution/tool_registry.py list                   # List all tools by category
-python execution/tool_registry.py show <tool_name>       # Full schema for a tool
-python execution/tool_registry.py find "<query>"         # Search tools by keyword
-python execution/tool_registry.py validate               # Validate all tool schemas
-python execution/tool_registry.py schema <tool_name>     # Get OpenAI function-call schema
-python execution/tool_registry.py export --format json   # Export full registry
+python .tmp/scripts/tool_registry.py list                   # List all tools by category
+python .tmp/scripts/tool_registry.py show <tool_name>       # Full schema for a tool
+python .tmp/scripts/tool_registry.py find "<query>"         # Search tools by keyword
+python .tmp/scripts/tool_registry.py validate               # Validate all tool schemas
+python .tmp/scripts/tool_registry.py schema <tool_name>     # Get OpenAI function-call schema
+python .tmp/scripts/tool_registry.py export --format json   # Export full registry
 ```
 
 ### Adding New Tools
-When creating a new execution script, add an entry to `execution/tool_registry.json`:
+When creating a new execution script, add an entry to `.tmp/scripts/tool_registry.json`:
 ```json
 {
   "name": "my_new_tool",
-  "script": "execution/my_new_tool.py",
+  "script": ".tmp/scripts/my_new_tool.py",
   "description": "What it does",
   "category": "category_name",
   "tags": ["relevant", "tags"],
@@ -58,27 +58,27 @@ Task graphs let you plan multi-step workflows as directed acyclic graphs (DAGs) 
 ### Commands
 ```bash
 # Create a plan with inline steps (id:name[:dep1,dep2])
-python execution/task_graph.py create "Pipeline Name" \
+python .tmp/scripts/task_graph.py create "Pipeline Name" \
   --step "scrape:Scrape leads" \
   --step "enrich:Enrich emails:scrape" \
   --step "upload:Upload to sheet:enrich"
 
 # Or from a JSON file
-python execution/task_graph.py create "Pipeline Name" --steps steps.json
+python .tmp/scripts/task_graph.py create "Pipeline Name" --steps steps.json
 
 # Check plan status
-python execution/task_graph.py show <plan_id>
-python execution/task_graph.py list
+python .tmp/scripts/task_graph.py show <plan_id>
+python .tmp/scripts/task_graph.py list
 
 # Find steps ready to execute (all dependencies met)
-python execution/task_graph.py ready <plan_id>
+python .tmp/scripts/task_graph.py ready <plan_id>
 
 # Mark step completed/failed
-python execution/task_graph.py mark <plan_id> <step_id> completed --output "Result data"
-python execution/task_graph.py mark <plan_id> <step_id> failed --error "Error message"
+python .tmp/scripts/task_graph.py mark <plan_id> <step_id> completed --output "Result data"
+python .tmp/scripts/task_graph.py mark <plan_id> <step_id> failed --error "Error message"
 
 # Reset a step and all downstream for re-execution
-python execution/task_graph.py reset <plan_id> <step_id>
+python .tmp/scripts/task_graph.py reset <plan_id> <step_id>
 ```
 
 ### Step Statuses
@@ -114,17 +114,17 @@ The confirmation system provides approval gates for irreversible agent actions. 
 ### Commands
 ```bash
 # Create an approval request
-python execution/confirm_action.py request "Send 50 emails" --tool instantly_create_campaigns --risk high
+python .tmp/scripts/confirm_action.py request "Send 50 emails" --tool instantly_create_campaigns --risk high
 
 # Check request status
-python execution/confirm_action.py check <request_id>
+python .tmp/scripts/confirm_action.py check <request_id>
 
 # Approve or deny
-python execution/confirm_action.py approve <request_id> --reason "Approved by user"
-python execution/confirm_action.py deny <request_id> --reason "Budget exceeded"
+python .tmp/scripts/confirm_action.py approve <request_id> --reason "Approved by user"
+python .tmp/scripts/confirm_action.py deny <request_id> --reason "Budget exceeded"
 
 # List pending approvals
-python execution/confirm_action.py list-pending
+python .tmp/scripts/confirm_action.py list-pending
 ```
 
 ### Programmatic Use (from other scripts)
@@ -157,23 +157,23 @@ Structured trace logging for every tool call. Tracks timing, costs, tokens, erro
 ### Commands
 ```bash
 # Start a trace
-python execution/execution_trace.py start "Lead Gen Run" --plan <plan_id>
+python .tmp/scripts/execution_trace.py start "Lead Gen Run" --plan <plan_id>
 
 # Log tool execution events (step auto-increments if omitted)
-python execution/execution_trace.py log <trace_id> --tool scrape_google_maps --status success --duration 12.5
-python execution/execution_trace.py log <trace_id> --tool enrich_emails --status success --duration 8.3 --cost 0.05
+python .tmp/scripts/execution_trace.py log <trace_id> --tool scrape_google_maps --status success --duration 12.5
+python .tmp/scripts/execution_trace.py log <trace_id> --tool enrich_emails --status success --duration 8.3 --cost 0.05
 
 # End the trace
-python execution/execution_trace.py end <trace_id> --status success
+python .tmp/scripts/execution_trace.py end <trace_id> --status success
 
 # View trace details
-python execution/execution_trace.py show <trace_id>
+python .tmp/scripts/execution_trace.py show <trace_id>
 
 # List recent traces
-python execution/execution_trace.py list
+python .tmp/scripts/execution_trace.py list
 
 # Aggregate statistics
-python execution/execution_trace.py stats --days 7
+python .tmp/scripts/execution_trace.py stats --days 7
 ```
 
 ### Programmatic Use (from other scripts)

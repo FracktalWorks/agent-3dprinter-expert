@@ -1,4 +1,4 @@
-﻿# Memory Management Directive
+# Memory Management Directive
 
 ## Purpose
 Manage persistent memory across sessions so the agent gets smarter over time. Memory is the agent's competitive advantage over generic AI chat — it enables continuity, learning, and personalization.
@@ -15,7 +15,7 @@ Fast, structured files read at session start. Small enough to fit in LLM context
 | `decision_journal.json` | Decisions made with reasoning and outcome tracking | JSON |
 | `insights.md` | Accumulated wisdom and lessons learned (append-only) | Markdown |
 
-Custom memory types can be registered: `python execution/memory_bank.py --register <name> <filename>`
+Custom memory types can be registered: `python .tmp/scripts/memory_bank.py --register <name> <filename>`
 
 ### Tier 2: Long-Term Memory (SQLite FTS via `memory_db.py`)
 Searchable database for deep history. Queried on demand when Tier 1 doesn't have the answer.
@@ -99,151 +99,151 @@ When searching Tier 2 (`memory_db.py search`):
 
 ---
 
-## Tool: execution/memory_bank.py (Tier 1 — Working Memory)
+## Tool: .tmp/scripts/memory_bank.py (Tier 1 — Working Memory)
 
 ### Read
 ```bash
-python execution/memory_bank.py --read context                # Read one file
-python execution/memory_bank.py --read all                    # Read everything (session start)
-python execution/memory_bank.py --status                      # Check what's populated
+python .tmp/scripts/memory_bank.py --read context                # Read one file
+python .tmp/scripts/memory_bank.py --read all                    # Read everything (session start)
+python .tmp/scripts/memory_bank.py --status                      # Check what's populated
 ```
 
 ### Update Context
 ```bash
 # Update a specific field (dot notation)
-python execution/memory_bank.py --update context --key "goals.q2" --value "Launch product"
+python .tmp/scripts/memory_bank.py --update context --key "goals.q2" --value "Launch product"
 
 # Merge a JSON object
-python execution/memory_bank.py --update context --data '{"stage": "growth", "revenue": "growing"}'
+python .tmp/scripts/memory_bank.py --update context --data '{"stage": "growth", "revenue": "growing"}'
 ```
 
 ### Log Interactions
 ```bash
-python execution/memory_bank.py --log-interaction --summary "Discussed launch timing" --topics "launch,timeline"
+python .tmp/scripts/memory_bank.py --log-interaction --summary "Discussed launch timing" --topics "launch,timeline"
 ```
 
 ### Log Decisions
 ```bash
-python execution/memory_bank.py --log-decision --decision "Delay launch to Q2" --context "Dependencies not ready" --reasoning "Risk reduction"
+python .tmp/scripts/memory_bank.py --log-decision --decision "Delay launch to Q2" --context "Dependencies not ready" --reasoning "Risk reduction"
 ```
 
 ### Update Decision Outcomes
 ```bash
-python execution/memory_bank.py --update-outcome 1 --outcome "Good call — dependencies resolved by Q2"
+python .tmp/scripts/memory_bank.py --update-outcome 1 --outcome "Good call — dependencies resolved by Q2"
 ```
 
 ### Add Insights
 ```bash
-python execution/memory_bank.py --add-insight "Always validate API responses before caching" --category "api"
+python .tmp/scripts/memory_bank.py --add-insight "Always validate API responses before caching" --category "api"
 ```
 
 ### Search Working Memory
 ```bash
-python execution/memory_bank.py --search "funding"
+python .tmp/scripts/memory_bank.py --search "funding"
 ```
 
 ### Register Custom Memory Types
 ```bash
-python execution/memory_bank.py --register profile profile.json      # Add agent-specific memory files
-python execution/memory_bank.py --register birth_chart birth_chart.json
+python .tmp/scripts/memory_bank.py --register profile profile.json      # Add agent-specific memory files
+python .tmp/scripts/memory_bank.py --register birth_chart birth_chart.json
 ```
 
 ### Initialize Memory
 ```bash
-python execution/memory_bank.py --init                        # Create default files if missing
+python .tmp/scripts/memory_bank.py --init                        # Create default files if missing
 ```
 
-## Tool: execution/memory_db.py (Tier 2 — Long-Term Memory)
+## Tool: .tmp/scripts/memory_db.py (Tier 2 — Long-Term Memory)
 
 ### Universal Search (Primary Interface)
 `ash
-python execution/memory_db.py search "rate limit API"
-python execution/memory_db.py search "client preferences" --type facts
-python execution/memory_db.py search "last week" --after 2026-03-10
-python execution/memory_db.py search "onboarding" --json
+python .tmp/scripts/memory_db.py search "rate limit API"
+python .tmp/scripts/memory_db.py search "client preferences" --type facts
+python .tmp/scripts/memory_db.py search "last week" --after 2026-03-10
+python .tmp/scripts/memory_db.py search "onboarding" --json
 `
 
 ### Short-Term Memory
 `ash
-python execution/memory_db.py stm set "current_task" "Processing batch 3"
-python execution/memory_db.py stm set "retry_count" "2" --ttl 3600    # Expires in 1hr
-python execution/memory_db.py stm get "current_task"
-python execution/memory_db.py stm show
-python execution/memory_db.py stm clear                                # Clear expired
-python execution/memory_db.py stm clear --all                         # Clear everything
+python .tmp/scripts/memory_db.py stm set "current_task" "Processing batch 3"
+python .tmp/scripts/memory_db.py stm set "retry_count" "2" --ttl 3600    # Expires in 1hr
+python .tmp/scripts/memory_db.py stm get "current_task"
+python .tmp/scripts/memory_db.py stm show
+python .tmp/scripts/memory_db.py stm clear                                # Clear expired
+python .tmp/scripts/memory_db.py stm clear --all                         # Clear everything
 `
 
 ### Long-Term Memory: Facts
 `ash
-python execution/memory_db.py add-fact "SerpAPI free tier: 100 searches/month" \
+python .tmp/scripts/memory_db.py add-fact "SerpAPI free tier: 100 searches/month" \
     --category "api_limits" --tags "serpapi,rate-limit"
-python execution/memory_db.py add-fact "Client prefers bullet-point format" \
+python .tmp/scripts/memory_db.py add-fact "Client prefers bullet-point format" \
     --category "preferences" --entity "Acme Corp"
 `
 
 ### Long-Term Memory: Entities
 `ash
-python execution/memory_db.py add-entity "Acme Corp" --type company \
+python .tmp/scripts/memory_db.py add-entity "Acme Corp" --type company \
     --details "Primary client, SaaS, 50 employees" --tags "client,active"
-python execution/memory_db.py add-entity "Jane Doe" --type person \
+python .tmp/scripts/memory_db.py add-entity "Jane Doe" --type person \
     --details "CTO at Acme Corp, decision maker" --tags "contact,stakeholder"
 `
 
 ### Long-Term Memory: Insights (append-only)
 `ash
-python execution/memory_db.py add-insight "Add 200ms delays between API calls to avoid 429s" \
+python .tmp/scripts/memory_db.py add-insight "Add 200ms delays between API calls to avoid 429s" \
     --category "api"
-python execution/memory_db.py add-insight "PDF extraction is better with pymupdf than pdfplumber" \
+python .tmp/scripts/memory_db.py add-insight "PDF extraction is better with pymupdf than pdfplumber" \
     --category "tools"
 `
 
 ### Interactions & Decisions
 `ash
-python execution/memory_db.py log-interaction --summary "Generated 50 leads" \
+python .tmp/scripts/memory_db.py log-interaction --summary "Generated 50 leads" \
     --topics "lead-gen,google-maps" --follow-ups "Enrich emails"
     
-python execution/memory_db.py log-decision --decision "Switch to direct scraping" \
+python .tmp/scripts/memory_db.py log-decision --decision "Switch to direct scraping" \
     --context "Apify costs too high" --reasoning "Direct is 3x cheaper"
     
-python execution/memory_db.py update-outcome 1 "Direct scraping worked, 3x savings"
+python .tmp/scripts/memory_db.py update-outcome 1 "Direct scraping worked, 3x savings"
 `
 
 ### Context & Profile
 `ash
-python execution/memory_db.py context set "project.stage" "data_collection"
-python execution/memory_db.py context show
-python execution/memory_db.py profile set "agent.type" "lead_generation"
-python execution/memory_db.py profile show
+python .tmp/scripts/memory_db.py context set "project.stage" "data_collection"
+python .tmp/scripts/memory_db.py context show
+python .tmp/scripts/memory_db.py profile set "agent.type" "lead_generation"
+python .tmp/scripts/memory_db.py profile show
 `
 
 ### Maintenance
 ```bash
-python execution/memory_db.py status                    # Table row counts
-python execution/memory_db.py rebuild-fts               # Repair search indexes
-python execution/memory_db.py export --format json      # Full memory dump
+python .tmp/scripts/memory_db.py status                    # Table row counts
+python .tmp/scripts/memory_db.py rebuild-fts               # Repair search indexes
+python .tmp/scripts/memory_db.py export --format json      # Full memory dump
 ```
 
 ### Embedding / Semantic Search (Optional)
 Requires `pip install sentence-transformers`. Falls back to BM25 if not installed.
 
 ```bash
-python execution/memory_db.py embed-sync                # Build/refresh embeddings for all facts, insights, entities
-python execution/memory_db.py embed-search "rate limits" --top-k 5
-python execution/memory_db.py hybrid-search "API billing" --semantic-weight 0.3 --json
+python .tmp/scripts/memory_db.py embed-sync                # Build/refresh embeddings for all facts, insights, entities
+python .tmp/scripts/memory_db.py embed-search "rate limits" --top-k 5
+python .tmp/scripts/memory_db.py hybrid-search "API billing" --semantic-weight 0.3 --json
 ```
 
 ### Memory Consolidation / Reflection
 ```bash
-python execution/memory_db.py consolidate-stm --days 1  # Promote high-access STM to facts, discard stale
-python execution/memory_db.py deduplicate-facts          # Remove exact duplicate facts
-python execution/memory_db.py reflect --json             # Generate consolidation report (pending decisions, stale STM, suggestions)
+python .tmp/scripts/memory_db.py consolidate-stm --days 1  # Promote high-access STM to facts, discard stale
+python .tmp/scripts/memory_db.py deduplicate-facts          # Remove exact duplicate facts
+python .tmp/scripts/memory_db.py reflect --json             # Generate consolidation report (pending decisions, stale STM, suggestions)
 ```
 
 ### Evaluation & Guardrails
 ```bash
-python execution/memory_db.py log-eval --task "scrape_leads" --status success --cost 0.10 --tokens 2000 --duration 15.0
-python execution/memory_db.py check-guardrails --task "email_gen" --output-text "Hello..." --cost 0.05 --tokens 500 --json
-python execution/memory_db.py eval-summary --days 7 --json
+python .tmp/scripts/memory_db.py log-eval --task "scrape_leads" --status success --cost 0.10 --tokens 2000 --duration 15.0
+python .tmp/scripts/memory_db.py check-guardrails --task "email_gen" --output-text "Hello..." --cost 0.05 --tokens 500 --json
+python .tmp/scripts/memory_db.py eval-summary --days 7 --json
 ```
 
 Guardrail checks (run automatically via `check-guardrails`):

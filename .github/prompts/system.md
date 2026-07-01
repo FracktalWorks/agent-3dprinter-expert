@@ -14,7 +14,7 @@ OctoPrint integration issues, WebSocket reconnection problems, or UI-level bugs.
 
 **Layer 1 — Skills:** `.github/skills/3d-printer-expert/SKILL.md`
 **Layer 2 — Orchestration:** You (the LLM) — read the skill, call scripts, apply judgment
-**Layer 3 — Execution:** `.github/skills/3d-printer-expert/scripts/` and `execution/`
+**Layer 3 — Execution:** `.github/skills/3d-printer-expert/scripts/` and `.tmp/scripts/`
 
 ## Platform Tools (injected by CommandCenter)
 

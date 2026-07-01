@@ -122,7 +122,7 @@ def validate_registry(registry):
     warnings = []
 
     for t in tools:
-        script_path = SCRIPT_DIR / t["script"].replace("execution/", "")
+        script_path = SCRIPT_DIR / t["script"].replace(".tmp/scripts/", "")
         if not script_path.exists():
             errors.append(f"  MISSING: {t['name']} -> {t['script']}")
 

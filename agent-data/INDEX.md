@@ -1,7 +1,14 @@
 # agent-data — INDEX
 
-Reference data for 3D Printer Expertging. All files in this directory are
+Reference data for 3D Printer Expert. All files in this directory are
 read-only — the agent references them but never modifies them.
+
+## Framework Reference Docs
+
+| File | Description |
+|------|-------------|
+| `infrastructure_tools.md` | Tool registry, task graphs, approval gates, execution traces |
+| `memory_management.md` | Dual-tier memory system — working memory (Tier 1) + long-term memory (Tier 2) |
 
 ## Klipper Reference
 

@@ -60,7 +60,7 @@ echo "✓ Created .tmp directory"
 # Create memory directory and initialize database
 mkdir -p memory
 echo "✓ Created memory directory"
-python execution/memory_db.py status >/dev/null 2>&1 && echo "✓ Memory database initialized" || echo "WARNING: Memory DB init skipped"
+python .tmp/scripts/memory_db.py status >/dev/null 2>&1 && echo "✓ Memory database initialized" || echo "WARNING: Memory DB init skipped"
 
 echo ""
 echo "============================================"

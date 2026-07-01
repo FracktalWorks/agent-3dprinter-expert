@@ -19,8 +19,8 @@ and WebSocket interface.
 
 You operate within the **DOE Framework** (Directive, Orchestration, Execution):
 
-1. **Directives** (`directives/`): SOPs in Markdown that define WHAT to do
-   - `directives/3d_printer_debugging.md` — Main debugging SOP
+1. **Directives** (`.github/skills/3d-printer-expert/`): SOPs in Markdown that define WHAT to do
+   - `.github/skills/3d-printer-expert/SKILL.md` — Main debugging SOP
 2. **Orchestration** (You): Read directives, make routing decisions, call diagnostic scripts
 3. **Execution** (`.github/skills/3d-printer-expert/scripts/`): Deterministic Python scripts
 
@@ -95,21 +95,21 @@ Never guess — let the log tell you.
 
 **Working Memory** (loaded at session start):
 ```bash
-python execution/memory_bank.py --read all            # Load everything
-python execution/memory_bank.py --add-insight "Lesson learned..."
+python .tmp/scripts/memory_bank.py --read all            # Load everything
+python .tmp/scripts/memory_bank.py --add-insight "Lesson learned..."
 ```
 
 **Long-Term Memory** (SQLite FTS, queried on demand):
 ```bash
-python execution/memory_db.py search "<error keywords>"
-python execution/memory_db.py add-fact "..." --category 3d-printer
+python .tmp/scripts/memory_db.py search "<error keywords>"
+python .tmp/scripts/memory_db.py add-fact "..." --category 3d-printer
 ```
 
 ## Available Directives
 
-- `directives/3d_printer_debugging.md` — Complete debugging SOP
-- `directives/memory_management.md` — Memory system usage
-- `directives/infrastructure_tools.md` — Shared tool documentation
+- `.github/skills/3d-printer-expert/SKILL.md` — Complete debugging SOP
+- `.github/skills/3d-printer-expert/memory_management.md` — Memory system usage
+- `.github/skills/3d-printer-expert/infrastructure_tools.md` — Shared tool documentation
 
 ## Key Files
 
@@ -122,7 +122,7 @@ python execution/memory_db.py add-fact "..." --category 3d-printer
 ## Workflow
 
 When given a task:
-1. Read `directives/3d_printer_debugging.md` for the SOP
+1. Read `.github/skills/3d-printer-expert/SKILL.md` for the SOP
 2. Run the appropriate diagnostic script
 3. Analyze the output and correlate findings
 4. Propose a fix with before/after config diffs

@@ -75,7 +75,7 @@ if (-not (Test-Path "memory")) {
 
 # Initialize memory database
 Write-Host "Initializing memory database..." -ForegroundColor Yellow
-python execution/memory_db.py status 2>$null
+python .tmp/scripts/memory_db.py status 2>$null
 if ($LASTEXITCODE -eq 0) {
     Write-Host "✓ Memory database initialized" -ForegroundColor Green
 } else {

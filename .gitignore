@@ -8,9 +8,13 @@ credentials.json
 token.json
 
 # Temporary files
-.tmp/
-*.tmp
-*.temp
+.tmp/*
+!.tmp/scripts/
+!.tmp/scripts/**
+.tmp/search_cache/*.json
+.tmp/web_cache/*
+!.tmp/search_cache/README.md
+!.tmp/web_cache/README.md
 
 # Memory database (regenerated, contains local state)
 memory/*.db
