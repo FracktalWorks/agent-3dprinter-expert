@@ -27,6 +27,8 @@ read-only — the agent references them but never modifies them.
 The ControlCenter codebase is referenced externally at:
 `C:\Users\VijayRaghavVarada\Documents\Github\ControlCenter`
 
+**GitHub:** https://github.com/FracktalWorks/ControlCenter
+
 Key documentation:
 - `Documentation/` — Debug session logs, testing guides
 - `Documentation/ERROR_HANDLING_IMPROVEMENTS.md` — Error handling patterns
