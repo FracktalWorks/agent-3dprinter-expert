@@ -1,0 +1,31 @@
+{
+  "// DOE Framework Agent Workspace Settings": "",
+  "// Generated automatically - customize as needed": "",
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
+  "python.terminal.activateEnvironment": true,
+  "python.analysis.autoImportCompletions": true,
+  "python.analysis.typeCheckingMode": "basic",
+  "github.copilot.enable": {
+    "*": true,
+    "plaintext": true,
+    "markdown": true,
+    "python": true
+  },
+  "github.copilot.chat.codesearch.enabled": true,
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "explicit"
+  },
+  "files.associations": {
+    "*.agent.md": "markdown",
+    ".env.example": "dotenv",
+    ".env": "dotenv"
+  },
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "terminal.integrated.cwd": "${workspaceFolder}",
+  "search.exclude": {
+    "**/.tmp": true,
+    "**/__pycache__": true,
+    "**/.venv": true
+  }
+}

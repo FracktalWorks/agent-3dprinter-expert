@@ -1,0 +1,13 @@
+{
+  "recommendations": [
+    "GitHub.copilot",
+    "GitHub.copilot-chat",
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-python.debugpy",
+    "esbenp.prettier-vscode",
+    "redhat.vscode-yaml",
+    "DotJoshJohnson.xml"
+  ],
+  "unwantedRecommendations": []
+}

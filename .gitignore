@@ -1,0 +1,46 @@
+# Environment variables and secrets
+.env
+.env.local
+.env.*.local
+
+# Google OAuth credentials
+credentials.json
+token.json
+
+# Temporary files
+.tmp/
+*.tmp
+*.temp
+
+# Memory database (regenerated, contains local state)
+memory/*.db
+memory/*.db-wal
+memory/*.db-shm
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Don't ignore .vscode - we want the settings
+!.vscode/

@@ -1,0 +1,14 @@
+# Auto-generated requirements for this agent workspace
+
+anthropic
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+openai
+pyserial
+python-dotenv
+requests
+websocket-client
+
+# Optional: Enables semantic/hybrid search in memory system
+# sentence-transformers

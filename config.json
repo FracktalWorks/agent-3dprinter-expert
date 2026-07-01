@@ -1,0 +1,15 @@
+{
+  "name": "3d-printer-expert",
+  "description": "Debugs 3D printer firmware/software issues — Klipper logs, OctoPrint API, printer.cfg analysis, MCU errors, thermistor problems, and ControlCenter codebase reference. Use when the user asks about 3D printer troubleshooting, Klipper, OctoPrint, firmware configs, print failures, or hardware-software integration bugs.",
+  "version": "0.1.0",
+  "skill_repos": [],
+  "integrations": ["octoprint"],
+  "optional_integrations": ["anthropic", "openai"],
+  "tags": ["3d-printing", "klipper", "octoprint", "firmware", "debugging", "hardware"],
+  "tool_scope": ["web_search", "fetch_page", "write_artifact", "manage_todo_list", "ask_user", "get_errors", "save_note", "recall_notes", "github_search", "github_repo_search"],
+  "max_mutation_attempts": 1,
+  "mcp_servers": {},
+  "icon": "Printer",
+  "category": "external",
+  "webhook_routes": []
+}
