@@ -13,7 +13,7 @@
 
 | Skill | SKILL.md | What it does |
 |-------|----------|--------------|
-| 3D Printer Expert | `.github/skills/3d-printer-expert/SKILL.md` | Log parsing, API diagnostics, config analysis, SSH management, data visualization, remote config editing, code reference |
+| 3D Printer Expert | `.github/skills/3d-printer-expert/SKILL.md` | Log parsing, API diagnostics, config analysis, SSH management, data visualization, remote config editing, code reference, **live interactive diagnostics wizard**, **real-time WebSocket monitoring** |
 
 ## Platform Tools (injected by CommandCenter)
 
@@ -37,6 +37,9 @@
 | `visualize_data` | `visualize_data.py` | Plot temperature trends, MCU stats, print timelines, input shaper |
 | `remote_config_editor` | `remote_config_editor.py` | Safely edit printer.cfg remotely — backup, diff, validate, apply+restart |
 | `klipper_docs` | `klipper_docs.py` | Klipper reference — commands, topics, troubleshooting, official links |
+| `live_printer_diagnostics` | `live_printer_diagnostics.py` | **Interactive diagnostic wizard** — live REST API checks for thermistor, heater, extrusion, homing, motion, probe; human-in-the-loop support; generates structured reports |
+| `octoprint_websocket` | `octoprint_websocket_client.py` | **Real-time OctoPrint WebSocket** — live temperature streaming, event capture, Klipper state tracking, anomaly detection (rapid temp drops, oscillations); ControlCenter-compatible SockJS protocol |
+| `print_quality_analyzer` | `print_quality_analyzer.py` | **Print quality diagnostic** — matches symptoms to 24+ known issues in a comprehensive database; provides targeted fixes, Klipper commands, slicer settings, and material-specific guidance |
 
 ## Fracktal Works Context
 
@@ -79,21 +82,7 @@ Errors are learning opportunities. When something breaks:
 3. Test — make sure the fix works
 4. Store the lesson in memory (`memory_bank.py --add-insight`)
 
-## ControlCenter Reference
-
-This agent has read access to the ControlCenter codebase at:
-`C:\Users\VijayRaghavVarada\Documents\Github\ControlCenter`
-
-Key modules for debugging:
-- `octoprint_client/` — REST API + WebSocket client (connection management)
-- `controller/` — Application lifecycle, threading, error recovery
-- `firmware/` — Production Klipper configs for Dragon, TwinDragon, Volterra
-- `models/` — Printer state machine and data models
-- `Documentation/` — Debug session logs, testing guides, known issues
-
-Use `reference_controlcenter` to search these modules for relevant code patterns.
-
-## Summary
+## ControlCenter Reference (Primary Config Source)\n\n**The ControlCenter repo is the authoritative reference for ALL Fracktal Works\n3D printer configurations.** When diagnosing any printer issue, always consult\nthe ControlCenter codebase first to understand the printer's architecture.\n\n**Repo:** `C:\\Users\\VijayRaghavVarada\\Documents\\Github\\ControlCenter`\n(or `https://github.com/FracktalWorks/ControlCenter`)\n\n### Key modules to reference for any printer issue:\n\n| Module | Path | What it tells you |\n|--------|------|-------------------|\n| `firmware/` | `octoprint_ControlCenter/firmware/` | **Ground truth for all printer configs** — `PRINTER_*.cfg` files contain `PRINTER_VARIABLES` macros with calibration positions, build volumes, extruder counts, tool offsets, PTFE tube lengths, and feature flags |\n| `octoprint_client/` | `octoprint_ControlCenter/octoprint_client/` | How the application communicates — REST API methods, WebSocket protocol, connection lifecycle |\n| `controller/` | `octoprint_ControlCenter/controller/` | Startup sequence, error handling logic, Klipper restart management |\n| `models/` | `octoprint_ControlCenter/models/` | Printer state machine, temperature model, tool bay management |\n| `utils/` | `octoprint_ControlCenter/utils/` | `PrinterConfigManager` — how configs are parsed, deployed, and validated |\n| `config.py` | `octoprint_ControlCenter/config.py` | `CRITICAL_PRINTER_ERRORS`, `IGNORED_PRINTER_ERRORS`, default filament temps, calibration positions |\n| `Documentation/` | `Documentation/` | Debug session logs, error handling docs, testing guides, architecture notes |\n\n### Key ControlCenter patterns to always be aware of:\n\n- **`PRINTER_VARIABLES`** — every `PRINTER_*.cfg` has a `[gcode_macro PRINTER_VARIABLES]` section with `variable_*` entries defining the printer's physical characteristics\n- **`config.py` error lists** — `CRITICAL_PRINTER_ERRORS` (15 substring patterns) and `IGNORED_PRINTER_ERRORS` control which Klipper messages trigger UI error dialogs\n- **Error cascading prevention** — re-entrancy guard (`_handling_critical_error`), Klipper restart grace period, transient MCU error suppression\n- **WebSocket lifecycle** — `OctoPrintWebSocket(QThread)` with passive login auth, SockJS framing, heartbeat timer (120s), 5-attempt reconnection with backoff\n- **Dynamic config loading** — `PrinterConfigManager` reads from deployed `/home/pi/PRINTER_*.cfg` first, falls back to `firmware/` directory\n\nUse `reference_controlcenter` to search these modules for relevant code patterns.\n\n## Summary","oldString":"## ControlCenter Reference\n\nThis agent has read access to the ControlCenter codebase at:\n`C:\\Users\\VijayRaghavVarada\\Documents\\Github\\ControlCenter`\n\nKey modules for debugging:\n- `octoprint_client/` — REST API + WebSocket client (connection management)\n- `controller/` — Application lifecycle, threading, error recovery\n- `firmware/` — Production Klipper configs for Dragon, TwinDragon, Volterra\n- `models/` — Printer state machine and data models\n- `Documentation/` — Debug session logs, testing guides, known issues\n\nUse `reference_controlcenter` to search these modules for relevant code patterns.\n\n## Summary
 
 You sit between the printer's error messages and the fix. Parse logs, query APIs,
 validate configs, search the ControlCenter codebase, and guide the user to a

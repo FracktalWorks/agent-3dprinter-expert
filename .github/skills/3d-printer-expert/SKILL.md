@@ -31,6 +31,9 @@ communication, sensors, and the ControlCenter PyQt5 application.
 | `scripts/visualize_data.py` | Visualize data — temperature graphs, MCU stats, print timelines, input shaper spectra |
 | `scripts/remote_config_editor.py` | Safely edit printer.cfg remotely — backup, diff, validate, enable/disable includes, apply+restart |
 | `scripts/klipper_docs.py` | Klipper documentation reference — commands, topics, troubleshooting, source links, Pi tools |
+| `scripts/live_printer_diagnostics.py` | **Interactive diagnostic wizard** — connects via OctoPrint REST API, runs comprehensive checks (thermistor, heater, extrusion, homing, motion, probe), supports human-in-the-loop for physical verification, generates structured reports |
+| `scripts/octoprint_websocket_client.py` | Real-time WebSocket connection to OctoPrint — streams temperature, printer state, job progress, events; detects anomalies (rapid temp drops, oscillations, connection issues) |
+| `scripts/print_quality_analyzer.py` | **Print quality diagnostic tool** — matches user-described print symptoms to 24+ known issues in a comprehensive database; provides targeted fixes, Klipper commands, slicer settings, and material-specific guidance |
 
 ## Usage
 
@@ -71,6 +74,26 @@ python .github/skills/3d-printer-expert/scripts/remote_config_editor.py --host 1
 python .github/skills/3d-printer-expert/scripts/remote_config_editor.py --host 192.168.1.100 --enable MAG_DOOR.cfg
 python .github/skills/3d-printer-expert/scripts/remote_config_editor.py --host 192.168.1.100 --validate
 python .github/skills/3d-printer-expert/scripts/remote_config_editor.py --host 192.168.1.100 --apply-and-restart
+
+# LIVE DIAGNOSTICS — Interactive printer health check wizard
+python .github/skills/3d-printer-expert/scripts/live_printer_diagnostics.py --ip 192.168.1.100 --api-key YOURKEY
+python .github/skills/3d-printer-expert/scripts/live_printer_diagnostics.py --check heater,thermistor --interactive
+python .github/skills/3d-printer-expert/scripts/live_printer_diagnostics.py --check all --output report.json
+python .github/skills/3d-printer-expert/scripts/live_printer_diagnostics.py --check homing,motion --no-interactive
+
+# WEBSOCKET — Real-time monitoring via OctoPrint's SockJS WebSocket (same as ControlCenter)
+python .github/skills/3d-printer-expert/scripts/octoprint_websocket_client.py --ip 192.168.1.100 --api-key YOURKEY
+python .github/skills/3d-printer-expert/scripts/octoprint_websocket_client.py --monitor temps --duration 120 --detect-anomalies
+python .github/skills/3d-printer-expert/scripts/octoprint_websocket_client.py --trend tool0 --duration 60
+
+# PRINT QUALITY — Diagnose print issues from symptom descriptions
+python .github/skills/3d-printer-expert/scripts/print_quality_analyzer.py --symptom "stringing between towers"
+python .github/skills/3d-printer-expert/scripts/print_quality_analyzer.py --symptom "first layer not sticking" --material PETG
+python .github/skills/3d-printer-expert/scripts/print_quality_analyzer.py --category extrusion
+python .github/skills/3d-printer-expert/scripts/print_quality_analyzer.py --list-categories
+python .github/skills/3d-printer-expert/scripts/print_quality_analyzer.py --material-guide ABS
+python .github/skills/3d-printer-expert/scripts/print_quality_analyzer.py --tuning-guide
+python .github/skills/3d-printer-expert/scripts/print_quality_analyzer.py --post-processing
 ```
 
 ## Required Environment Variables

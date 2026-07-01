@@ -1,0 +1,594 @@
+{
+  "version": "1.0.0",
+  "description": "Comprehensive database of 3D printing print quality issues, causes, and fixes. Covers mechanical, slicer, firmware, and material factors.",
+  "categories": {
+    "adhesion": {
+      "label": "Bed Adhesion & First Layer",
+      "issues": [
+        {
+          "id": "not_sticking_to_bed",
+          "name": "Not Sticking to Bed",
+          "symptoms": ["Print detaches during printing", "First layer doesn't adhere", "Corners lift"],
+          "causes": [
+            {"factor": "bed_leveling", "detail": "Bed not properly leveled — nozzle too far from bed"},
+            {"factor": "z_offset", "detail": "Z-offset too high — first layer not squished enough"},
+            {"factor": "bed_temp", "detail": "Bed temperature too low for material (PLA: 50-65°C, ABS: 90-110°C, PETG: 70-85°C)"},
+            {"factor": "bed_surface", "detail": "Dirty or worn bed surface — clean with IPA, consider PEI/glass/textured sheet"},
+            {"factor": "first_layer_speed", "detail": "First layer printing too fast — reduce to 15-25 mm/s"},
+            {"factor": "first_layer_height", "detail": "First layer height too thin — use 0.2-0.3mm for better adhesion"},
+            {"factor": "cooling", "detail": "Part cooling fan too strong on first layers — disable for layers 1-3"},
+            {"factor": "draft", "detail": "Drafts or ambient temperature changes causing warping"},
+            {"factor": "adhesion_aid", "detail": "No adhesion aid — use glue stick, hairspray, or brim"}
+          ],
+          "fixes": [
+            "Re-level bed using paper test or BED_SCREWS_ADJUST",
+            "Lower Z-offset in 0.02mm increments until first layer is properly squished",
+            "Increase bed temperature by 5-10°C",
+            "Clean bed with isopropyl alcohol (IPA) before each print",
+            "Apply glue stick (for ABS/ASA) or use textured PEI sheet (for PETG)",
+            "Slow first layer speed to 20mm/s",
+            "Use a brim (5-10mm) for small or warp-prone parts",
+            "Disable part cooling fan for first 2-3 layers",
+            "Enclose printer for ABS/ASA to prevent drafts"
+          ],
+          "klipper_commands": ["BED_SCREWS_ADJUST", "SET_GCODE_OFFSET Z_ADJUST=-0.02", "PROBE_CALIBRATE"],
+          "slicer_settings": ["first_layer_height", "first_layer_speed", "bed_temperature", "brim_width", "cooling_fan_speed_layer_time"]
+        },
+        {
+          "id": "warping",
+          "name": "Warping / Corner Lifting",
+          "symptoms": ["Corners lift from bed", "Bottom of print curves upward", "Large flat parts deform"],
+          "causes": [
+            {"factor": "thermal_contraction", "detail": "Material shrinks as it cools — ABS warps more than PLA"},
+            {"factor": "bed_adhesion", "detail": "Insufficient bed adhesion at corners"},
+            {"factor": "ambient_temp", "detail": "Cold ambient air causes uneven cooling"},
+            {"factor": "bed_temp_gradient", "detail": "Bed temperature uneven across surface"}
+          ],
+          "fixes": [
+            "Use enclosure to maintain consistent ambient temperature",
+            "Add mouse ears/brim at corners",
+            "Increase bed temperature (5-10°C)",
+            "Use raft for large flat parts",
+            "Apply adhesive: glue stick for ABS, hairspray for PLA",
+            "Reduce infill density to minimize internal stress",
+            "Use heated chamber if available"
+          ],
+          "klipper_commands": ["SET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=..."],
+          "slicer_settings": ["bed_temperature", "brim_width", "raft_layers", "infill_density"]
+        }
+      ]
+    },
+    "extrusion": {
+      "label": "Extrusion Problems",
+      "issues": [
+        {
+          "id": "under_extrusion",
+          "name": "Under-Extrusion",
+          "symptoms": ["Gaps between perimeters", "Thin/wispy layers", "Weak infill", "Missing extrusion lines"],
+          "causes": [
+            {"factor": "nozzle_clog", "detail": "Partial nozzle clog — debris or burnt filament"},
+            {"factor": "extruder_tension", "detail": "Extruder tension too loose — filament slipping"},
+            {"factor": "filament_diameter", "detail": "Filament diameter not calibrated — measure with calipers"},
+            {"factor": "flow_rate", "detail": "Flow/extrusion multiplier too low in slicer"},
+            {"factor": "temp_too_low", "detail": "Print temperature too low for material"},
+            {"factor": "speed_too_high", "detail": "Printing too fast for hotend to melt filament"},
+            {"factor": "heat_creep", "detail": "Heat creep — filament softens too high in hotend, causing jams"},
+            {"factor": "e_steps", "detail": "E-steps/rotation_distance not calibrated"},
+            {"factor": "bowden_friction", "detail": "Excessive friction in Bowden tube (for Bowden setups)"}
+          ],
+          "fixes": [
+            "Perform cold pull to clear partial clog",
+            "Increase extruder tension or check gear for wear",
+            "Calibrate rotation_distance: mark 120mm, extrude 100mm, measure",
+            "Increase flow rate by 2-5% in slicer",
+            "Increase print temperature by 5-10°C",
+            "Reduce print speed by 20%",
+            "Check hotend cooling fan — ensure it runs continuously",
+            "Replace nozzle if worn (brass nozzles wear with abrasive filaments)",
+            "For Bowden: check tube for kinks, use Capricorn tubing"
+          ],
+          "klipper_commands": ["SET_EXTRUDER_ROTATION_DISTANCE", "M221 S105"],
+          "slicer_settings": ["extrusion_multiplier", "print_temperature", "print_speed", "filament_diameter"]
+        },
+        {
+          "id": "over_extrusion",
+          "name": "Over-Extrusion",
+          "symptoms": ["Blobs on surface", "Bulging corners", "Rough top surface", "Excess material on sides"],
+          "causes": [
+            {"factor": "flow_too_high", "detail": "Flow rate/extrusion multiplier too high"},
+            {"factor": "filament_diameter", "detail": "Filament diameter set too thin in slicer"},
+            {"factor": "temp_too_high", "detail": "Temperature too high causing excess flow"},
+            {"factor": "e_steps", "detail": "Rotation distance too low (over-extruding)"}
+          ],
+          "fixes": [
+            "Reduce flow rate by 2-5%",
+            "Measure filament diameter with calipers in 5+ spots, use average",
+            "Lower print temperature by 5-10°C",
+            "Calibrate rotation_distance"
+          ],
+          "klipper_commands": ["SET_EXTRUDER_ROTATION_DISTANCE", "M221 S95"],
+          "slicer_settings": ["extrusion_multiplier", "print_temperature", "filament_diameter"]
+        },
+        {
+          "id": "inconsistent_extrusion",
+          "name": "Inconsistent Extrusion",
+          "symptoms": ["Varying line width", "Periodic underextrusion bands", "Irregular surface texture"],
+          "causes": [
+            {"factor": "filament_quality", "detail": "Poor quality filament with inconsistent diameter"},
+            {"factor": "extruder_gear", "detail": "Worn or dirty extruder gear — slipping"},
+            {"factor": "partial_clog", "detail": "Intermittent partial clog"},
+            {"factor": "pid_tuning", "detail": "Temperature fluctuations due to poor PID tuning"},
+            {"factor": "filament_path", "detail": "Filament spool binding or tangled"},
+            {"factor": "pressure_advance", "detail": "Pressure advance not calibrated"}
+          ],
+          "fixes": [
+            "Use quality filament (Prusament, Hatchbox, eSun, Polymaker)",
+            "Clean extruder gear with brush; replace if worn",
+            "Perform cold pull or replace nozzle",
+            "Run PID_CALIBRATE for extruder and bed",
+            "Ensure spool rotates freely — use bearing spool holder",
+            "Calibrate pressure advance with TUNING_TOWER"
+          ],
+          "klipper_commands": ["PID_CALIBRATE HEATER=extruder TARGET=...", "TUNING_TOWER COMMAND=SET_PRESSURE_ADVANCE PARAMETER=ADVANCE START=0 FACTOR=.005"],
+          "slicer_settings": ["pressure_advance"]
+        },
+        {
+          "id": "stringing_oozing",
+          "name": "Stringing / Oozing",
+          "symptoms": ["Thin strings between parts", "Hairs on print surface", "Oozing during travel moves"],
+          "causes": [
+            {"factor": "retraction_distance", "detail": "Retraction distance too short"},
+            {"factor": "retraction_speed", "detail": "Retraction speed too slow"},
+            {"factor": "temp_too_high", "detail": "Print temperature too high — filament too fluid"},
+            {"factor": "travel_speed", "detail": "Travel speed too slow — filament has time to ooze"},
+            {"factor": "coasting", "detail": "Coasting/wiping not enabled"},
+            {"factor": "wet_filament", "detail": "Wet filament — moisture causes stringing and popping"}
+          ],
+          "fixes": [
+            "Increase retraction distance (direct drive: 0.5-2mm, Bowden: 4-7mm)",
+            "Increase retraction speed (30-60mm/s direct, 40-80mm/s Bowden)",
+            "Lower print temperature by 5-10°C",
+            "Increase travel speed to 200-300mm/s",
+            "Enable coasting/wiping in slicer",
+            "Dry filament at recommended temperature for 4-8 hours",
+            "Enable z-hop only if needed (adds time but prevents nozzle drag)"
+          ],
+          "klipper_commands": [],
+          "slicer_settings": ["retraction_length", "retraction_speed", "print_temperature", "travel_speed", "wipe_distance"]
+        },
+        {
+          "id": "clogged_extruder",
+          "name": "Clogged Extruder / Nozzle",
+          "symptoms": ["No filament extruding", "Clicking sound from extruder", "Grinding filament", "Sudden underextrusion"],
+          "causes": [
+            {"factor": "debris", "detail": "Dust/debris in filament entered nozzle"},
+            {"factor": "heat_creep", "detail": "Heat creep — filament softens in cold zone"},
+            {"factor": "burnt_filament", "detail": "Filament burnt from sitting at high temp too long"},
+            {"factor": "nozzle_gap", "detail": "Gap between nozzle and heatbreak/PTFE tube"},
+            {"factor": "wrong_temp", "detail": "Printing at wrong temperature for material"}
+          ],
+          "fixes": [
+            "Perform cold pull: heat to 170°C (PLA), push filament, cool to 90°C, pull firmly",
+            "Use nozzle cleaning needle",
+            "Replace nozzle (brass nozzles are consumable)",
+            "Check hotend cooling fan is always running when hotend is hot",
+            "Ensure PTFE tube is flush against nozzle (for PTFE-lined hotends)",
+            "Use filament dust filter"
+          ],
+          "klipper_commands": ["SET_HEATER_TEMPERATURE HEATER=extruder TARGET=..."],
+          "slicer_settings": ["print_temperature", "retraction_length"]
+        }
+      ]
+    },
+    "surface_quality": {
+      "label": "Surface Quality",
+      "issues": [
+        {
+          "id": "ringing_ghosting",
+          "name": "Ringing / Ghosting / Echoing",
+          "symptoms": ["Ripples/waves around corners", "Echo of features on surface", "Oscillation lines after direction changes"],
+          "causes": [
+            {"factor": "mechanical_vibration", "detail": "Mechanical resonance/vibration from rapid direction changes"},
+            {"factor": "acceleration", "detail": "Acceleration too high for printer rigidity"},
+            {"factor": "jerk", "detail": "Square corner velocity (jerk) too high"},
+            {"factor": "belt_tension", "detail": "Loose belts amplify vibrations"},
+            {"factor": "frame_rigidity", "detail": "Printer frame not rigid enough"},
+            {"factor": "input_shaper", "detail": "Input shaper not configured or tuned"}
+          ],
+          "fixes": [
+            "Tighten X and Y belts — should produce low bass note when plucked",
+            "Reduce acceleration (start at 1000-2000 mm/s²)",
+            "Reduce square_corner_velocity to 5.0",
+            "Enable and tune input shaper with ADXL345: SHAPER_CALIBRATE",
+            "Add frame bracing / stiffeners",
+            "Reduce moving mass (lighter toolhead)",
+            "Ensure printer on stable surface"
+          ],
+          "klipper_commands": ["SHAPER_CALIBRATE", "TEST_RESONANCES AXIS=X", "SET_VELOCITY_LIMIT ACCEL=..."],
+          "slicer_settings": ["default_acceleration", "outer_perimeter_acceleration", "jerk"]
+        },
+        {
+          "id": "layer_lines",
+          "name": "Visible Layer Lines / Z-Banding",
+          "symptoms": ["Regular horizontal lines on print", "Ribbed surface texture", "Inconsistent layer stacking"],
+          "causes": [
+            {"factor": "z_rod", "detail": "Bent or dirty Z lead screw"},
+            {"factor": "z_wobble", "detail": "Z-axis wobble from misaligned lead screw"},
+            {"factor": "layer_height", "detail": "Z-axis microstepping artifacts at non-optimal layer heights"},
+            {"factor": "temp_variation", "detail": "Temperature fluctuations during print"},
+            {"factor": "extrusion_variation", "detail": "Inconsistent extrusion flow"}
+          ],
+          "fixes": [
+            "Clean and lubricate Z lead screw",
+            "Use flexible Z coupler (Oldham coupler)",
+            "Use optimal layer heights (multiples of full steps: 0.04mm steps for 1.8° motors with TR8x8)",
+            "Run PID_CALIBRATE for temperature stability",
+            "Check Z stepper Vref/current settings"
+          ],
+          "klipper_commands": ["PID_CALIBRATE"],
+          "slicer_settings": ["layer_height", "print_temperature"]
+        },
+        {
+          "id": "blobs_zits",
+          "name": "Blobs and Zits",
+          "symptoms": ["Small bumps on surface", "Random zits on perimeters", "Material accumulation spots"],
+          "causes": [
+            {"factor": "retraction", "detail": "Poor retraction settings — oozing at layer change"},
+            {"factor": "seam", "detail": "Visible Z seam alignment"},
+            {"factor": "power_recovery", "detail": "Power loss recovery writing to SD — causes pauses"},
+            {"factor": "octoprint_streaming", "detail": "OctoPrint serial buffer starvation — pauses"}
+          ],
+          "fixes": [
+            "Tune retraction (extra prime amount after retraction)",
+            "Set seam position to 'aligned' or 'sharpest corner'",
+            "Disable power loss recovery if using SD card",
+            "Increase OctoPrint serial buffer or print from virtual_sdcard",
+            "Enable coasting to relieve pressure before retraction"
+          ],
+          "klipper_commands": [],
+          "slicer_settings": ["seam_position", "retraction_extra_prime_amount", "coasting_volume"]
+        },
+        {
+          "id": "scars_top_surface",
+          "name": "Scars on Top Surface / Nozzle Drag",
+          "symptoms": ["Scratches on top layer", "Nozzle drags through print", "Ironing marks"],
+          "causes": [
+            {"factor": "z_hop", "detail": "Z-hop disabled — nozzle drags during travel"},
+            {"factor": "overextrusion", "detail": "Slight over-extrusion causes material buildup"},
+            {"factor": "combing", "detail": "Combing mode causes nozzle to travel through top surface"}
+          ],
+          "fixes": [
+            "Enable z-hop (0.2-0.4mm)",
+            "Reduce flow by 1-2%",
+            "Set combing mode to 'not on outer surface' or 'within infill'",
+            "Enable ironing for smooth top surface"
+          ],
+          "klipper_commands": [],
+          "slicer_settings": ["z_hop_height", "extrusion_multiplier", "combing_mode", "ironing"]
+        }
+      ]
+    },
+    "structural": {
+      "label": "Structural Issues",
+      "issues": [
+        {
+          "id": "layer_shift",
+          "name": "Layer Shifting",
+          "symptoms": ["Layers misaligned", "Print shifted sideways", "Stepped appearance"],
+          "causes": [
+            {"factor": "belt_skip", "detail": "Belt skipped teeth — too loose"},
+            {"factor": "stepper_current", "detail": "Stepper current too low — motor stalls"},
+            {"factor": "stepper_overheat", "detail": "Stepper driver overheating — thermal shutdown"},
+            {"factor": "collision", "detail": "Nozzle hit curled edge or blob — lost steps"},
+            {"factor": "speed_too_high", "detail": "Print speed/acceleration exceeds stepper torque"},
+            {"factor": "pulley_grub", "detail": "Pulley grub screw loose on motor shaft"}
+          ],
+          "fixes": [
+            "Tighten belts — they should twang when plucked",
+            "Increase stepper current (TMC: increase run_current by 0.05-0.1A)",
+            "Check stepper driver cooling — add fan if needed",
+            "Enable z-hop to avoid collisions",
+            "Reduce acceleration and speed",
+            "Tighten all pulley grub screws with thread locker"
+          ],
+          "klipper_commands": ["SET_TMC_CURRENT STEPPER=stepper_x CURRENT=..."],
+          "slicer_settings": ["print_speed", "travel_speed", "default_acceleration", "z_hop_height"]
+        },
+        {
+          "id": "layer_separation",
+          "name": "Layer Separation / Delamination",
+          "symptoms": ["Layers splitting apart", "Cracks between layers", "Weak layer bonding"],
+          "causes": [
+            {"factor": "temp_too_low", "detail": "Print temperature too low — layers don't fuse"},
+            {"factor": "layer_height", "detail": "Layer height too tall for nozzle diameter"},
+            {"factor": "cooling_too_strong", "detail": "Part cooling too aggressive — cools before bonding"},
+            {"factor": "material", "detail": "Material inherently prone to delamination (ABS, Nylon)"}
+          ],
+          "fixes": [
+            "Increase print temperature by 5-10°C",
+            "Reduce layer height (max 75% of nozzle diameter)",
+            "Decrease part cooling fan speed",
+            "Use enclosure for warp-prone materials",
+            "Increase extrusion width slightly"
+          ],
+          "klipper_commands": [],
+          "slicer_settings": ["print_temperature", "layer_height", "cooling_fan_speed", "extrusion_width"]
+        },
+        {
+          "id": "weak_infill",
+          "name": "Weak Infill / Gaps in Infill",
+          "symptoms": ["Thin stringy infill", "Infill not connecting to perimeters", "Easily crushed parts"],
+          "causes": [
+            {"factor": "infill_speed", "detail": "Infill printing too fast — underextrusion"},
+            {"factor": "infill_pattern", "detail": "Infill pattern too sparse for strength"},
+            {"factor": "infill_overlap", "detail": "Infill/perimeter overlap too low"},
+            {"factor": "extrusion_width", "detail": "Infill extrusion width too narrow"}
+          ],
+          "fixes": [
+            "Reduce infill speed to match perimeter speed",
+            "Use gyroid, cubic, or honeycomb infill for strength",
+            "Increase infill/perimeter overlap to 25-30%",
+            "Increase infill extrusion width",
+            "Increase infill density (20-40% for structural parts)"
+          ],
+          "klipper_commands": [],
+          "slicer_settings": ["infill_speed", "infill_pattern", "infill_overlap", "infill_extrusion_width", "fill_density"]
+        },
+        {
+          "id": "pillowing",
+          "name": "Pillowing / Gaps in Top Layers",
+          "symptoms": ["Holes/gaps in top surface", "Rough top finish", "Top layers not solid"],
+          "causes": [
+            {"factor": "top_layers", "detail": "Not enough top solid layers"},
+            {"factor": "infill_density", "detail": "Infill density too low to support top layers"},
+            {"factor": "cooling", "detail": "Insufficient cooling — top layers sag into infill"}
+          ],
+          "fixes": [
+            "Increase top solid layers to 5-6 minimum",
+            "Increase infill density to at least 15%",
+            "Increase part cooling fan for top layers",
+            "Add more perimeters for better support"
+          ],
+          "klipper_commands": [],
+          "slicer_settings": ["top_solid_layers", "fill_density", "cooling_fan_speed"]
+        }
+      ]
+    },
+    "dimensional": {
+      "label": "Dimensional & Geometric Issues",
+      "issues": [
+        {
+          "id": "dimensional_inaccuracy",
+          "name": "Dimensional Inaccuracy",
+          "symptoms": ["Parts wrong size", "Holes too small", "Fit issues with mating parts"],
+          "causes": [
+            {"factor": "steps_calibration", "detail": "X/Y/Z steps/mm not calibrated"},
+            {"factor": "shrinkage", "detail": "Material shrinkage not accounted for"},
+            {"factor": "extrusion_width", "detail": "Extrusion width affects hole diameters"},
+            {"factor": "first_layer_squish", "detail": "First layer squish affects Z height"}
+          ],
+          "fixes": [
+            "Calibrate rotation_distance for all axes with precision gauge",
+            "Apply shrinkage compensation in slicer (ABS: ~0.5%, PLA: ~0.2%)",
+            "Print calibration cube (20mm) and measure with calipers",
+            "Use horizontal expansion/hole compensation in slicer",
+            "Set precise Z-offset for accurate Z height"
+          ],
+          "klipper_commands": ["SET_EXTRUDER_ROTATION_DISTANCE"],
+          "slicer_settings": ["xy_compensation", "hole_compensation", "filament_shrinkage"]
+        },
+        {
+          "id": "elephant_foot",
+          "name": "Elephant's Foot",
+          "symptoms": ["Bottom layers bulge outward", "First few layers wider than rest"],
+          "causes": [
+            {"factor": "bed_temp", "detail": "Bed too hot — bottom layers stay soft"},
+            {"factor": "nozzle_distance", "detail": "Nozzle too close to bed on first layer"},
+            {"factor": "weight", "detail": "Weight of print compressing soft bottom layers"}
+          ],
+          "fixes": [
+            "Reduce bed temperature by 5°C",
+            "Increase Z-offset slightly",
+            "Enable elephant foot compensation in slicer",
+            "Add chamfer to bottom edge in CAD"
+          ],
+          "klipper_commands": ["SET_GCODE_OFFSET Z_ADJUST=+0.02"],
+          "slicer_settings": ["first_layer_height", "bed_temperature", "elephant_foot_compensation"]
+        },
+        {
+          "id": "poor_bridging",
+          "name": "Poor Bridging",
+          "symptoms": ["Sagging bridges", "Gaps in bridge strands", "Drooping overhangs"],
+          "causes": [
+            {"factor": "bridge_speed", "detail": "Bridge speed too slow or too fast"},
+            {"factor": "bridge_flow", "detail": "Bridge flow rate not optimized"},
+            {"factor": "cooling", "detail": "Insufficient cooling during bridging"},
+            {"factor": "temp_too_high", "detail": "Temperature too high — filament doesn't solidify quickly"}
+          ],
+          "fixes": [
+            "Optimize bridge speed (20-30mm/s typically)",
+            "Set bridge flow ratio to 0.9-1.0",
+            "Run fan at 100% during bridges",
+            "Lower nozzle temperature for bridges by 5-10°C",
+            "Enable bridge detection in slicer"
+          ],
+          "klipper_commands": [],
+          "slicer_settings": ["bridge_speed", "bridge_flow_ratio", "bridge_fan_speed", "bridge_temperature"]
+        },
+        {
+          "id": "curling_overhangs",
+          "name": "Curling / Rough Overhangs",
+          "symptoms": ["Overhangs curl upward", "Rough underside of overhangs", "Corners deform"],
+          "causes": [
+            {"factor": "cooling", "detail": "Insufficient part cooling"},
+            {"factor": "speed", "detail": "Printing overhangs too fast"},
+            {"factor": "layer_time", "detail": "Layer time too short — previous layer still soft"},
+            {"factor": "temp_too_high", "detail": "Temperature too high"}
+          ],
+          "fixes": [
+            "Increase part cooling fan to 100%",
+            "Slow down for overhangs (50% of normal speed)",
+            "Set minimum layer time to 10-15 seconds",
+            "Lower print temperature",
+            "Add supports for angles > 45°"
+          ],
+          "klipper_commands": [],
+          "slicer_settings": ["overhang_speed", "cooling_fan_speed", "min_layer_time", "support_angle"]
+        }
+      ]
+    }
+  },
+  "material_reference": {
+    "PLA": {
+      "nozzle_temp": "190-220°C",
+      "bed_temp": "50-65°C",
+      "cooling": "100% after first layer",
+      "enclosure": "Not required",
+      "notes": "Easy to print. Low warping. Not for high-temp applications. Biodegradable.",
+      "common_issues": ["stringing", "heat_creep"],
+      "retraction": "Direct drive: 0.5-1.5mm, Bowden: 4-6mm"
+    },
+    "PETG": {
+      "nozzle_temp": "220-250°C",
+      "bed_temp": "70-85°C",
+      "cooling": "30-50% fan",
+      "enclosure": "Not required",
+      "notes": "Stronger than PLA. Less brittle. Sticks aggressively to PEI — use release agent.",
+      "common_issues": ["stringing", "bed_over_adhesion"],
+      "retraction": "Direct drive: 1-2mm, Bowden: 5-7mm"
+    },
+    "ABS": {
+      "nozzle_temp": "230-260°C",
+      "bed_temp": "90-110°C",
+      "cooling": "0-20% fan",
+      "enclosure": "Required",
+      "notes": "Strong and heat-resistant. Warps easily without enclosure. Fumes require ventilation.",
+      "common_issues": ["warping", "layer_separation", "fumes"],
+      "retraction": "Direct drive: 0.5-1mm, Bowden: 4-5mm"
+    },
+    "ASA": {
+      "nozzle_temp": "240-260°C",
+      "bed_temp": "90-110°C",
+      "cooling": "0-20% fan",
+      "enclosure": "Required",
+      "notes": "UV-resistant alternative to ABS. Similar properties but better outdoor durability.",
+      "common_issues": ["warping", "layer_separation"],
+      "retraction": "Direct drive: 0.5-1mm, Bowden: 4-5mm"
+    },
+    "TPU_FLEX": {
+      "nozzle_temp": "210-240°C",
+      "bed_temp": "40-60°C",
+      "cooling": "30-50% fan",
+      "enclosure": "Not required",
+      "notes": "Flexible. Print SLOW (15-30mm/s). Direct drive strongly recommended. Disable retraction if jamming.",
+      "common_issues": ["extruder_jam", "stringing", "poor_bridging"],
+      "retraction": "Direct drive: 0-0.5mm, Bowden: NOT recommended"
+    },
+    "NYLON_PA": {
+      "nozzle_temp": "240-280°C",
+      "bed_temp": "70-100°C",
+      "cooling": "0-20% fan",
+      "enclosure": "Recommended",
+      "notes": "Very strong and durable. Extremely hygroscopic — MUST dry before printing (70°C, 6-12h).",
+      "common_issues": ["warping", "moisture_popping", "bed_adhesion"],
+      "retraction": "Direct drive: 0.5-1mm, Bowden: 3-5mm"
+    },
+    "PC_POLYCARBONATE": {
+      "nozzle_temp": "260-310°C",
+      "bed_temp": "90-120°C",
+      "cooling": "0-10% fan",
+      "enclosure": "Required",
+      "notes": "Extremely strong, high-temp resistance. Requires all-metal hotend. Must dry thoroughly.",
+      "common_issues": ["warping", "layer_separation", "bed_adhesion"],
+      "retraction": "Direct drive: 0.5-1mm"
+    }
+  },
+  "slicer_best_practices": {
+    "layer_height": {
+      "description": "Optimal layer heights for TR8x8 leadscrew (1.8° stepper, 16 microsteps)",
+      "optimal_values_mm": [0.08, 0.12, 0.16, 0.20, 0.24, 0.28, 0.32],
+      "note": "Use multiples of 0.04mm (full step) to avoid microstepping artifacts"
+    },
+    "nozzle_diameter": {
+      "max_layer_height": "75% of nozzle diameter",
+      "max_extrusion_width": "120% of nozzle diameter",
+      "min_extrusion_width": "100% of nozzle diameter",
+      "note": "For 0.4mm nozzle: max layer 0.3mm, extrusion width 0.4-0.48mm"
+    },
+    "speed_ranges": {
+      "outer_perimeter": "30-60 mm/s",
+      "inner_perimeter": "40-80 mm/s",
+      "infill": "60-150 mm/s",
+      "solid_infill": "50-100 mm/s",
+      "top_solid_infill": "30-50 mm/s",
+      "travel": "200-500 mm/s",
+      "first_layer": "15-25 mm/s",
+      "bridge": "15-30 mm/s",
+      "gap_fill": "20-40 mm/s"
+    },
+    "acceleration_ranges": {
+      "outer_perimeter": "500-1500 mm/s²",
+      "inner_perimeter": "1000-3000 mm/s²",
+      "infill": "2000-5000 mm/s²",
+      "travel": "3000-10000 mm/s²",
+      "first_layer": "500-1000 mm/s²"
+    },
+    "temperature_tower": {
+      "description": "Print a temperature tower to find optimal temperature for each filament",
+      "typical_range": "180-240°C (PLA), 220-260°C (PETG), 230-270°C (ABS)",
+      "steps": "5°C per section, 25-50 layers per section"
+    }
+  },
+  "klipper_tuning_sequence": [
+    {"step": 1, "name": "PID Tune Extruder", "command": "PID_CALIBRATE HEATER=extruder TARGET=<temp>", "note": "Tune at typical print temperature"},
+    {"step": 2, "name": "PID Tune Bed", "command": "PID_CALIBRATE HEATER=heater_bed TARGET=<temp>", "note": "Tune at typical bed temperature"},
+    {"step": 3, "name": "E-step Calibration", "command": "Measure and set rotation_distance", "note": "Mark 120mm, extrude 100mm, calculate"},
+    {"step": 4, "name": "Flow Calibration", "command": "Print hollow cube, measure wall thickness", "note": "Adjust extrusion_multiplier"},
+    {"step": 5, "name": "Pressure Advance", "command": "TUNING_TOWER COMMAND=SET_PRESSURE_ADVANCE PARAMETER=ADVANCE START=0 FACTOR=.005", "note": "For direct drive: factor .005, Bowden: factor .020"},
+    {"step": 6, "name": "Input Shaper", "command": "SHAPER_CALIBRATE (with ADXL345)", "note": "Or manual ringing tower: SET_VELOCITY_LIMIT MINIMUM_CRUISE_RATIO=0"},
+    {"step": 7, "name": "Temperature Tower", "command": "Print test tower, inspect for best layer adhesion + least stringing", "note": "Find optimal temperature"},
+    {"step": 8, "name": "Retraction Tuning", "command": "Print retraction tower, find optimal distance + speed", "note": "Minimize stringing without causing jams"}
+  ],
+  "post_processing": {
+    "support_removal": {
+      "tools": ["Pliers", "Flush cutters", "Tweezers"],
+      "methods": ["Break away by hand", "Cut at contact points", "Use soluble supports (PVA/HIPS) for complex parts"],
+      "tips": "Set support Z-distance to 1x layer height for easy removal, top contact Z-distance to 1-2x layer height"
+    },
+    "sanding": {
+      "grit_progression": ["120 → 240 → 400 → 600 → 1000 → 2000"],
+      "tools": ["Sandpaper", "Sanding block", "Needle files (for details)"],
+      "tips": "Wet sanding for PLA reduces dust and heat. Start coarse, progress fine."
+    },
+    "priming_painting": {
+      "primer": "Automotive filler primer (spray can) — fills layer lines",
+      "steps": ["Sand to 400 grit", "Apply 2-3 coats of primer (light coats)", "Wet sand at 600-1000 grit", "Apply paint", "Clear coat for protection"],
+      "paints": ["Acrylic spray paint", "Airbrush with model acrylics", "Brush painting for details"]
+    },
+    "vapor_smoothing": {
+      "materials": {"ABS": "Acetone vapor", "ASA": "Acetone vapor", "PVB": "IPA vapor"},
+      "method": "Suspend part above liquid solvent in sealed container. Vapors smooth surface. 15-60 min exposure.",
+      "safety": "Highly flammable! Do outdoors or with ventilation. No ignition sources."
+    },
+    "gluing_assembly": {
+      "PLA": "Super glue (CA glue) or 2-part epoxy",
+      "PETG": "Super glue or epoxy — scuff surface first",
+      "ABS_ASA": "Acetone welding — apply acetone to both sides, clamp together",
+      "general": "Pin and socket joints for alignment, CA glue with accelerator"
+    },
+    "heat_treating": {
+      "annealing_PLA": "Heat to 80-100°C in oven for 30-60 min — improves strength and heat resistance",
+      "note": "Parts will shrink slightly during annealing. Account for this in design."
+    }
+  },
+  "troubleshooting_workflow": {
+    "description": "Systematic approach to diagnosing 3D print quality issues",
+    "steps": [
+      "1. IDENTIFY: What exactly is the problem? Take clear photos. Compare to reference images.",
+      "2. ISOLATE: Is the issue mechanical, slicer, firmware, or material?",
+      "3. PRIORITIZE: Fix the most fundamental issue first (bed leveling > extrusion > surface)",
+      "4. CHANGE ONE THING: Make a single change, reprint test object, compare",
+      "5. DOCUMENT: Record what worked. Update slicer profile. Save Klipper config."
+    ]
+  }
+}

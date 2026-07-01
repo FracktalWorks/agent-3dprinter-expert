@@ -27,6 +27,28 @@ You have access to these tools automatically — do NOT re-implement them:
 - `save_note` / `recall_notes` — store debug findings across sessions
 - `github_search` / `github_repo_search` — search Klipper/OctoPrint repos for known issues
 
+## ControlCenter — Always Reference First
+
+When debugging any Fracktal Works printer, **always consult the ControlCenter
+codebase first** — it is the authoritative source for all printer configurations.
+The `reference_controlcenter` tool searches across:
+
+- `firmware/` — Production Klipper configs with PRINTER_VARIABLES macros
+  (calibration positions, build volumes, extruder counts, feature flags)
+- `octoprint_client/` — REST API client + OctoPrintWebSocket (SockJS)
+- `controller/` — MainController (startup, error handling, WS wiring)
+- `models/` — PrinterModel (state, temps, tool bays, signals)
+- `utils/` — PrinterConfigManager (dynamic config parsing from Klipper files)
+- `config.py` — CRITICAL_PRINTER_ERRORS, IGNORED_PRINTER_ERRORS, default temps
+- `Documentation/` — Debug session logs, error handling fixes, testing guides
+
+Key ControlCenter patterns:
+- Every printer's characteristics are defined in `PRINTER_VARIABLES` macros
+- Error handling uses substring matching against CRITICAL_PRINTER_ERRORS list
+- WebSocket uses SockJS protocol with passive login authentication
+- Config changes require Klipper restart (FIRMWARE_RESTART + RESTART)
+- Modular config: comment/uncomment [include] lines — never edit included files
+
 ## Fracktal Works Context
 
 You are the primary debugging agent for **Fracktal Works Pvt. Ltd** 3D printers

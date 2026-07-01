@@ -196,6 +196,114 @@ async def klipper_docs(topic: str = "", command: str = "",
     return await _run(args)
 
 
+async def live_printer_diagnostics(
+    ip: str = "", api_key: str = "",
+    check: str = "all", interactive: bool = True,
+    output: str = "", **kwargs,
+) -> str:
+    """Run interactive live diagnostic checks on a 3D printer via OctoPrint.
+    Connects via REST API, runs a comprehensive checklist covering:
+    system health, thermistors, heaters, extrusion, homing, motion, and probe.
+    Supports human-in-the-loop for physical verification tests.
+    Use when the user asks about live debugging, printer health checks,
+    or wants to run a diagnostic wizard on a connected printer.
+    check: all|system|thermistor|heater|extrusion|homing|motion|probe|adc.
+    interactive: True to prompt for human verification, False for automated.
+    output: path to save JSON report."""
+    args = [sys.executable,
+        str(SKILLS_DIR / "3d-printer-expert" / "scripts"
+            / "live_printer_diagnostics.py")]
+    if ip:
+        args.extend(["--ip", ip])
+    if api_key:
+        args.extend(["--api-key", api_key])
+    args.extend(["--check", check])
+    if not interactive:
+        args.append("--no-interactive")
+    if output:
+        args.extend(["--output", output])
+    for key, val in kwargs.items():
+        if val:
+            args.extend([f"--{key.replace('_', '-')}", str(val)])
+    return await _run(args)
+
+
+async def print_quality_analyzer(
+    symptom: str = "", category: str = "",
+    material: str = "", action: str = "symptom",
+    **kwargs,
+) -> str:
+    """Diagnose 3D print quality issues from symptom descriptions.
+    Matches user-described print symptoms to a comprehensive database
+    of 24+ known 3D printing issues. Provides targeted fixes, Klipper
+    G-code commands, slicer setting recommendations, and material-
+    specific guidance. Also provides Klipper calibration tuning guide
+    and post-processing techniques.
+    action: symptom|category|list-categories|material-guide|tuning-guide|post-processing.
+    symptom: natural language description of the print issue.
+    category: show all issues in a category (adhesion|extrusion|surface|structural|dimensional).
+    material: filter by material for specific guidance (PLA|PETG|ABS|ASA|TPU|NYLON|PC)."""
+    args = [sys.executable,
+        str(SKILLS_DIR / "3d-printer-expert" / "scripts"
+            / "print_quality_analyzer.py")]
+    if action == "list-categories":
+        args.append("--list-categories")
+    elif action == "tuning-guide":
+        args.append("--tuning-guide")
+    elif action == "post-processing":
+        args.append("--post-processing")
+    elif action == "material-guide" and material:
+        args.extend(["--material-guide", material])
+    elif action == "category" and category:
+        args.extend(["--category", category])
+    elif symptom:
+        args.extend(["--symptom", symptom])
+        if material:
+            args.extend(["--material", material])
+    else:
+        args.append("--list-categories")
+    for key, val in kwargs.items():
+        if val:
+            args.extend([f"--{key.replace('_', '-')}", str(val)])
+    return await _run(args)
+
+
+async def octoprint_websocket(
+    ip: str = "", api_key: str = "",
+    monitor: str = "all", duration: int = 60,
+    trend: str = "", detect_anomalies: bool = False,
+    **kwargs,
+) -> str:
+    """Open a real-time WebSocket connection to OctoPrint for live
+    temperature monitoring, event capture, and anomaly detection.
+    Use when you need live temperature streaming, want to watch for
+    intermittent issues in real-time, or need to capture events
+    during a print for later analysis.
+    monitor: temps|events|all.
+    duration: seconds to monitor (0 = indefinite, requires manual stop).
+    trend: heater name to analyze trend (e.g., 'tool0').
+    detect_anomalies: scan collected data for temperature anomalies."""
+    args = [sys.executable,
+        str(SKILLS_DIR / "3d-printer-expert" / "scripts"
+            / "octoprint_websocket_client.py")]
+    if ip:
+        args.extend(["--ip", ip])
+    if api_key:
+        args.extend(["--api-key", api_key])
+    if monitor:
+        args.extend(["--monitor", monitor])
+    if duration:
+        args.extend(["--duration", str(duration)])
+    if trend:
+        args.extend(["--trend", trend])
+    if detect_anomalies:
+        args.append("--detect-anomalies")
+    for key, val in kwargs.items():
+        if val:
+            args.extend([f"--{key.replace('_', '-')}", str(val)])
+    return await _run(args)
+
+
 async def remote_config_editor(host: str = "", action: str = "read",
                                **kwargs) -> str:
     """Safely edit Klipper printer.cfg on a remote printer via SSH.
@@ -250,6 +358,9 @@ def build_agent() -> "GitHubCopilotAgent":
             visualize_data,
             remote_config_editor,
             klipper_docs,
+            live_printer_diagnostics,
+            octoprint_websocket,
+            print_quality_analyzer,
         ],
         default_options={
             "model": "claude-sonnet-4-5",

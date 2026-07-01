@@ -23,6 +23,13 @@ read-only — the agent references them but never modifies them.
 |------|-------------|
 | *(add OctoPrint API docs here)* | OctoPrint REST API endpoint reference |
 
+## 3D Printing Knowledge Base
+
+| File | Description |
+|------|-------------|
+| `print_quality_issues.json` | Comprehensive database of 24+ print quality issues with symptoms, causes, fixes, Klipper commands, and slicer settings |
+| `3dprinting_knowledge_base.md` | Deep reference covering 3D printing fundamentals, materials, slicers, post-processing, and troubleshooting workflows |
+
 ## Printer Configs
 
 | File | Description |
