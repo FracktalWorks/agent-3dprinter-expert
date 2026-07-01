@@ -28,7 +28,7 @@ read-only — the agent references them but never modifies them.
 | File | Description |
 |------|-------------|
 | `print_quality_issues.json` | Comprehensive database of 24+ print quality issues with symptoms, causes, fixes, Klipper commands, and slicer settings |
-| `3dprinting_knowledge_base.md` | Deep reference covering 3D printing fundamentals, materials, slicers, post-processing, and troubleshooting workflows |
+| `electronics_hardware_reference.json` | Hardware platform reference — BTT Manta M5P/M8P (STM32H723), RP2040 CAN toolhead, TMC5160/TMC2209 drivers, CAN bus diagnostics, power supply troubleshooting, firmware flashing procedures |
 
 ## Printer Configs
 

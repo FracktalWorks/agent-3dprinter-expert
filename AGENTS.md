@@ -67,6 +67,25 @@ commenting/uncommenting `[include]` lines — never edit the included files.
 - `outputs/` — Debug reports and fixed configurations
 - `tests/` — pytest suite — CI gate
 
+## Hardware Platform Reference
+
+All Fracktal Works printers use this electronics architecture:
+
+| Component | Hardware | Role |
+|-----------|----------|------|
+| Mainboard | **BTT Manta M5P/M8P** (STM32H723VG) | Primary Klipper MCU + USB-to-CAN bus bridge |
+| Toolhead | **Custom RP2040 board** | CAN bus toolhead — thermistor, ADXL345, fans, probe |
+| CAN Bus | can2040 (software CAN via PIO) | RP2040 ↔ STM32H723 communication at 500kbps |
+| Stepper X/Y | **TMC5160** (SPI, 1.2A) | High-torque CoreXY motion |
+| Stepper Z | **TMC5160** (SPI) | Z-axis control |
+| Extruder | **TMC2209** (UART, 0.85A) | Direct-drive extruder |
+| Raspberry Pi | **CM4** (BCM2711) | Klipper host + OctoPrint + ControlCenter |
+| Klipper fork | `FracktalWorks/klipper_IDEX` | Production branch with IDEX + CAN optimizations |
+
+Use `reference:"electronics_hardware_reference.json"` for detailed MCU diagnostics,
+TMC driver error flags, CAN bus troubleshooting, power supply checks, and
+firmware flashing procedures.
+
 ## Quick Start
 
 1. `pip install -r requirements.txt`

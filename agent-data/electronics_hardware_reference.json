@@ -1,0 +1,151 @@
+{
+  "version": "1.0.0",
+  "description": "Comprehensive reference for Fracktal Works 3D printer electronics -- BTT Manta boards, STM32H723, RP2040 CAN toolhead, TMC drivers, power supply, and Klipper MCU diagnostics",
+  "hardware_platform": {
+    "mainboard": {
+      "models": ["BTT Manta M5P", "BTT Manta M8P"],
+      "mcu": "STM32H723VG (Cortex-M7, 550MHz, 1MB flash)",
+      "role": "Primary Klipper MCU + USB-to-CAN bus bridge",
+      "stepper_drivers": {
+        "X_Y": {"chip": "TMC5160", "interface": "SPI", "current": "1.2A"},
+        "extruder": {"chip": "TMC2209", "interface": "UART", "current": "0.85A"}
+      },
+      "serial_port": "/tmp/printer (PTY symlink)",
+      "baud": "250000 (OctoPrint virtual serial)"
+    },
+    "toolhead_mcu": {
+      "mcu": "RP2040 (Cortex-M0+, dual-core, 200MHz)",
+      "role": "CAN bus toolhead controller",
+      "can_impl": "can2040 software CAN via PIO (Programmable I/O)",
+      "flash_method": "UF2 USB drag-drop or CanBoot via CAN bus"
+    },
+    "raspberry_pi": {
+      "model": "Compute Module 4 (BCM2711, 4x Cortex-A72, 1.5GHz)",
+      "os": "Debian 13 Trixie (64-bit)",
+      "can_adapter": "OpenMoko USB CAN adapter (gs_usb driver)"
+    },
+    "power_supply": {
+      "main": "24V DC for motors, heaters, fans",
+      "logic": "5V DC for Raspberry Pi and logic"
+    }
+  },
+  "mcu_diagnostics": {
+    "can_bus": {
+      "description": "CAN bus between STM32H723 bridge and RP2040 toolhead",
+      "check_commands": [
+        "ip -details link show can0",
+        "dmesg | grep -i can | tail -20",
+        "~/klippy-env/bin/python ~/klipper/scripts/canbus_query.py can0"
+      ],
+      "common_issues": [
+        {"symptom": "No CAN interface", "cause": "USB CAN adapter disconnected or driver not loaded", "fix": "Check lsusb for OpenMoko CAN adapter. Replug USB."},
+        {"symptom": "CAN tx_retries increasing in klippy.log", "cause": "Bus termination missing or wiring issue", "fix": "Ensure 120ohm termination at both ends of CAN bus."},
+        {"symptom": "Toolhead MCU not found by canbus_query", "cause": "RP2040 not flashed with CAN firmware or wrong CAN frequency", "fix": "Reflash RP2040 with CAN bus Klipper firmware. Verify 500kbps frequency."}
+      ]
+    },
+    "tmc_driver_errors": {
+      "description": "TMC stepper driver status and failure modes",
+      "TMC5160": {
+        "interface": "SPI",
+        "error_flags": {
+          "ot": "Overtemperature shutdown (>150C)",
+          "otpw": "Overtemperature warning (>120C)",
+          "s2ga": "Short to ground phase A",
+          "s2gb": "Short to ground phase B",
+          "uv_cp": "Charge pump undervoltage"
+        }
+      },
+      "TMC2209": {
+        "interface": "UART",
+        "error_flags": {
+          "ot": "Overtemperature shutdown (>150C)",
+          "otpw": "Overtemperature warning (>120C)",
+          "s2ga": "Short to ground phase A",
+          "s2gb": "Short to ground phase B",
+          "stst": "Standstill (motor not moving)"
+        }
+      },
+      "common_issues": [
+        {"symptom": "Unable to read tmc uart register IFCNT", "cause": "No 24V motor power or wrong UART pin config", "fix": "Check 24V power to motors. Cycle power to reset driver. Verify UART pin wiring."},
+        {"symptom": "Layer shift during fast moves", "cause": "TMC driver overtemperature or current limit", "fix": "Check DRV_STATUS for ot/otpw flags. Add cooling fan. Reduce acceleration."},
+        {"symptom": "TMC reports error: GSTAT", "cause": "Driver fault -- usually power-related", "fix": "Check 24V supply stability. Check for short in motor wiring."},
+        {"symptom": "Motor not moving / buzzing", "cause": "run_current too low or stealthChop threshold too high", "fix": "Increase run_current by 0.05A increments. Check stealthchop_threshold."}
+      ]
+    },
+    "mcu_temperature": {
+      "description": "MCU chip temperature monitoring",
+      "stm32h723": {"sensor": "Internal VREFINT + TS_CAL at 0x1FF1E820/0x1FF1E840", "normal": "30-65C", "warning": ">80C"},
+      "rp2040": {"sensor": "Internal ADC5 temp sensor (slope 3.3/-0.001721)", "normal": "30-60C"},
+      "note": "Add [temperature_sensor mcu_temp] with sensor_type: temperature_mcu in printer.cfg"
+    },
+    "flash_bootloader": {
+      "stm32h723_manta": {
+        "klipper_build": "make menuconfig: STM32 -> STM32H723 -> 25MHz crystal -> USB to CAN bus bridge",
+        "flash_sd": "Copy klipper.bin as firmware.bin to SD card, insert, power cycle",
+        "flash_dfu": "Hold BOOT0, connect USB, make flash FLASH_DEVICE=0483:df11"
+      },
+      "rp2040_toolhead": {
+        "klipper_build": "make menuconfig: RP2040/RP2350 -> CAN bus -> 500kbps -> GPIO pins for RX/TX",
+        "flash_uf2": "Hold BOOTSEL, connect USB, copy klipper.uf2 to RPI-RP2 drive",
+        "flash_canboot": "python scripts/canbus_query.py can0 -> python scripts/flash_can.py -d UUID klipper.bin"
+      }
+    },
+    "power_supply_issues": [
+      {"symptom": "Random MCU disconnects during heating", "cause": "24V PSU voltage sag when heaters engage", "fix": "Check PSU rating > total wattage x 1.25. Measure 24V under full load. Hotend ~40W, bed ~200-400W."},
+      {"symptom": "Raspberry Pi undervoltage warnings", "cause": "5V supply insufficient or noisy", "fix": "Run vcgencmd get_throttled. Use quality 5V PSU. Avoid powering Pi from Manta USB port."},
+      {"symptom": "USB/CAN communication errors", "cause": "Ground loop between PSU and Pi USB", "fix": "Use single PSU or tie grounds. Tape 5V pin on USB cable to prevent back-powering."},
+      {"symptom": "Heater not reaching target temperature", "cause": "PSU unable to supply heater current", "fix": "Measure heater resistance. Verify PSU wattage rating. Check wiring gauge."}
+    ]
+  },
+  "ssh_diagnostic_commands": {
+    "can_bus": [
+      "ip -details link show can0",
+      "dmesg | grep -i can | tail -20",
+      "~/klippy-env/bin/python ~/klipper/scripts/canbus_query.py can0",
+      "cat /sys/class/net/can0/statistics/tx_errors",
+      "cat /sys/class/net/can0/statistics/rx_errors"
+    ],
+    "usb_serial": [
+      "lsusb",
+      "dmesg | grep -i usb | tail -20",
+      "ls -la /dev/serial/by-id/",
+      "ls -la /tmp/printer"
+    ],
+    "power_health": [
+      "vcgencmd get_throttled",
+      "vcgencmd measure_volts core",
+      "dmesg | grep -i 'under.*voltage'",
+      "sudo vcgencmd measure_temp"
+    ],
+    "tmc_status": [
+      "DUMP_TMC STEPPER=stepper_x (send via OctoPrint terminal)",
+      "grep 'TMC' /tmp/klippy.log | tail -10",
+      "grep 'Unable to read tmc' /tmp/klippy.log"
+    ],
+    "mcu_info": [
+      "grep 'MCU' /tmp/klippy.log | tail -5",
+      "grep 'Configured MCU' /tmp/klippy.log | tail -5",
+      "grep 'mcu_constants' /tmp/klippy.log"
+    ],
+    "firmware": [
+      "ls -la ~/klipper/out/klipper.bin",
+      "ls -la ~/klipper/out/klipper.uf2",
+      "grep 'Build version' /tmp/klippy.log | tail -1"
+    ]
+  },
+  "klipper_integration": {
+    "fork_url": "https://github.com/FracktalWorks/klipper_IDEX",
+    "branch": "Production",
+    "key_features": [
+      "RP2040 CAN bus support via can2040 library (software CAN using PIO)",
+      "STM32H723 USB to CAN bus bridge mode (appears as both gs_usb adapter + Klipper CAN node)",
+      "TMC5160 SPI + TMC2209 UART driver support with continuous error monitoring",
+      "Support for dual carriage (IDEX) kinematics",
+      "MCU temperature sensing for STM32H723 (0x1FF1E820/0x1FF1E840) and RP2040"
+    ],
+    "build_notes": {
+      "rp2040": "Run at 200MHz (up from 125MHz in Klipper 0.13+). Uses arm-none-eabi- cross-compiler.",
+      "stm32h723": "25MHz external crystal. USB to CAN bridge mode creates /dev/serial/by-id/... for Klipper + gs_usb CAN adapter simultaneously."
+    }
+  }
+}

@@ -698,6 +698,91 @@ class PrinterDiagnostics:
 
         return self.results
 
+    # ── 8. MCU / Electronics Diagnostics ──────────────────────────────────
+
+    def check_electronics(self) -> list[dict]:
+        """Check MCU health, CAN bus, TMC drivers, power supply."""
+        print("\n" + "=" * 60)
+        print("🔌 ELECTRONICS / MCU DIAGNOSTICS")
+        print("=" * 60)
+
+        # MCU communication check
+        printer = self.printer_state or self.api.get_printer_state()
+        state_flags = printer.get("state", {}).get("flags", {})
+
+        if state_flags.get("ready"):
+            self._record("electronics", "Klipper ready state", TestResult.PASS,
+                         "Printer reports ready — MCU communication OK")
+            print("  ✅ Klipper ready — MCU communication healthy")
+        elif state_flags.get("error"):
+            self._record("electronics", "Klipper ready state", TestResult.FAIL,
+                         "Printer in error state",
+                         fix="Check klippy.log for MCU errors. Common: Lost communication, "
+                              "ADC out of range, Timer too close.")
+            print("  ❌ Printer in error state")
+        else:
+            self._record("electronics", "Klipper ready state", TestResult.WARN,
+                         f"Printer state: {state_flags}")
+
+        # TMC driver check via DUMP_TMC
+        for axis in ["stepper_x", "stepper_y", "stepper_z"]:
+            resp = self._send_gcode(f"DUMP_TMC STEPPER={axis}")
+            if "error" not in resp:
+                self._record("electronics", f"TMC driver {axis}", TestResult.PASS,
+                             f"{axis} driver responding")
+                print(f"  ✅ {axis} TMC driver OK")
+            else:
+                self._record("electronics", f"TMC driver {axis}", TestResult.WARN,
+                             f"Cannot query {axis}: {resp.get('error', 'unknown')}",
+                             fix="Check 24V motor power. Check TMC driver wiring. "
+                                  "Try power cycling the printer.")
+                print(f"  ⚠️  {axis}: {resp.get('error', 'unknown')}")
+
+        # CAN bus check (Klipper responds with MCU info)
+        result = self._ask_human(
+            "CAN bus health check (requires SSH):",
+            "Run: ip -details link show can0\n"
+            "Expected: state UP, bitrate 500000\n"
+            "Also: ~/klippy-env/bin/python ~/klipper/scripts/canbus_query.py can0\n"
+            "Should show UUIDs for all CAN nodes"
+        )
+        self._record("electronics", "CAN bus health", result,
+                     "Human-verified CAN bus status",
+                     fix="If CAN DOWN: check USB CAN adapter, verify /etc/network/interfaces.d/can0. "
+                          "If no nodes found: check 120ohm termination at both ends, check CAN wiring.")
+
+        # Power supply check
+        result = self._ask_human(
+            "Power supply check (requires SSH):",
+            "1. vcgencmd get_throttled — should be throttled=0x0 (no issues)\n"
+            "2. Measure 24V at PSU terminals with multimeter — should be 23.5-24.5V\n"
+            "3. Turn on all heaters + motors — 24V should not drop below 22V"
+        )
+        self._record("electronics", "Power supply health", result,
+                     "Human-verified PSU health",
+                     fix="If undervoltage (throttled != 0x0): use quality 5V PSU. "
+                          "If 24V sag: check PSU rating, check wiring gauge, add capacitor.")
+
+        # MCU temperature check
+        result = self._ask_human(
+            "MCU temperature check:",
+            "Check MCU temperatures in OctoPrint temperature graph or Klipper console.\n"
+            "STM32H723 normal: 30-65C. RP2040 normal: 30-60C.\n"
+            "Both should have [temperature_sensor] sections in printer.cfg"
+        )
+        self._record("electronics", "MCU temperature", result,
+                     "Human-verified MCU temperatures",
+                     fix="If MCU >80C: add heatsink + fan. Reduce stepper current. "
+                          "If no MCU temp reading: add [temperature_sensor mcu_temp] with sensor_type: temperature_mcu.")
+
+        # Firmware version check
+        self._send_gcode("M115")
+        self._record("electronics", "Firmware version", TestResult.PASS,
+                     "M115 sent — check terminal for FIRMWARE_NAME and version")
+        print("  ℹ️  M115 sent — check firmware version in terminal")
+
+        return self.results
+
     # ── Report Generation ────────────────────────────────────────────────
 
     def run_all_checks(self) -> dict:
@@ -711,6 +796,7 @@ class PrinterDiagnostics:
             ("homing", self.check_homing),
             ("motion", self.check_motion_system),
             ("probe", self.check_probe),
+            ("electronics", self.check_electronics),
         ]
 
         for cat_name, check_fn in categories:
@@ -735,6 +821,7 @@ class PrinterDiagnostics:
             "homing": self.check_homing,
             "motion": self.check_motion_system,
             "probe": self.check_probe,
+            "electronics": self.check_electronics,
         }
 
         for sel in selections:
