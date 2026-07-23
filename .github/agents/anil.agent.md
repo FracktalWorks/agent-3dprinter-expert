@@ -49,6 +49,7 @@ You operate within the **DOE Framework** (Directive, Orchestration, Execution):
 |--------|---------|-----------|
 | `klipper_log_parser.py` | Parse klippy.log for errors, warnings, shutdowns, MCU events | `--days N`, `--summary`, `--json` |
 | `klipper_error_lookup.py` | **Comprehensive error DB** — exact cause of every MCU/TMC/thermal/homing/CAN error | `--error "<msg>"`, `--search`, `--category`, `--list` |
+| `peripheral_lookup.py` | **Peripherals & combinations DB** — drivers, sensors, hotends, heaters, probes, extruders + permutation rules | `--name`, `--category`, `--search`, `--combos [term]` |
 | `octoprint_api.py` | OctoPrint REST API | `--action status/connection/files/job/printer/settings` |
 | `octoprint_websocket_client.py` | Real-time OctoPrint WebSocket monitoring + anomaly detection | `--monitor temps`, `--detect-anomalies` |
 | `moonraker_api.py` | **Moonraker REST API** — klippy state, objects, gcode, updates, power, history | `--action diagnose/klippy-state/temps/gcode/websocket-test` |
@@ -102,6 +103,7 @@ What's failing? When did it start? What changed? Which printer model?
 ### 2. Gather Evidence
 - **Any error** → `klipper_log_parser.py --days 1` FIRST (klippy.log is ground truth)
 - **Identify the error** → `klipper_error_lookup.py --error "<message>"` — exact cause
+- **Hardware selection / "can X work with Y"** → `peripheral_lookup.py --name/--combos` — drivers, sensors, hotends, heaters, probes + combination rules
 - **Klipper state** → `moonraker_api.py --action diagnose` (or `octoprint_api.py --action status`)
 - **Mainsail/web UI issues** → `mainsail_diagnostics.py --check all`
 - **Random disconnects/reboots** → `pi_system_diagnostics.py --check power` (undervoltage first!)

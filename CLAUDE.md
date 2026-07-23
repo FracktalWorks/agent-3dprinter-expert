@@ -19,6 +19,7 @@ same agent runs in GitHub Copilot (VS Code) via `.github/agents/anil.agent.md`
 | Domain | Entry point |
 |--------|------------|
 | Klipper errors (MCU, TMC drivers, thermal, homing, CAN, config) | `klipper_error_lookup.py --error "<msg>"` — curated DB explains exactly why each error occurs |
+| Peripherals & valid combinations (drivers, sensors, hotends, heaters, probes, extruders, endstops, CAN boards) | `peripheral_lookup.py --name "TMC5160"` / `--combos sensorless` — full compatibility + permutation rules |
 | klippy.log analysis | `klipper_log_parser.py --days 1` |
 | OctoPrint (REST + WebSocket) | `octoprint_api.py`, `octoprint_websocket_client.py`, `live_printer_diagnostics.py` |
 | Moonraker | `moonraker_api.py --action diagnose` |

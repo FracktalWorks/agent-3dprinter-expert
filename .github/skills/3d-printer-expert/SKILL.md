@@ -45,6 +45,7 @@ application.
 | `scripts/octoprint_websocket_client.py` | Real-time WebSocket connection to OctoPrint — streams temperature, printer state, job progress, events; detects anomalies (rapid temp drops, oscillations, connection issues) |
 | `scripts/print_quality_analyzer.py` | **Print quality diagnostic tool** — matches user-described print symptoms to 24+ known issues in a comprehensive database; provides targeted fixes, Klipper commands, slicer settings, and material-specific guidance |
 | `scripts/klipper_error_lookup.py` | **Comprehensive Klipper error database** — explains exactly why every common MCU, TMC driver, thermal, homing, extrusion, CAN, and config error occurs (source-level mechanism), with diagnostics and fixes |
+| `scripts/peripheral_lookup.py` | **Peripherals & combinations reference** — every Klipper-compatible motor driver, temperature sensor, hotend, heater, probe, extruder, accelerometer, filament sensor, endstop, fan, and CAN toolhead board, plus the combination rules governing valid permutations (temp ranges, sensorless requirements, current/voltage matching, CAN bandwidth, multi-extruder) |
 | `scripts/moonraker_api.py` | **Moonraker REST API client** — klippy state, printer objects, temperatures, G-code, job history, update manager, power devices, service restarts, WebSocket test, full health sweep |
 | `scripts/mainsail_diagnostics.py` | **Mainsail web stack diagnostics** — nginx frontend, Moonraker REST + WebSocket, CORS config, versions, SSH-layer service checks, and known failure-mode reference (blank page, 502, "cannot connect") |
 | `scripts/pi_system_diagnostics.py` | **Raspberry Pi health** — undervoltage/throttling decode, thermals, SD card health, network, USB serial, CAN bus, systemd services, boot config, journal errors, failure-mode reference |
@@ -107,6 +108,14 @@ python .github/skills/3d-printer-expert/scripts/klipper_error_lookup.py --error 
 python .github/skills/3d-printer-expert/scripts/klipper_error_lookup.py --category tmc_drivers
 python .github/skills/3d-printer-expert/scripts/klipper_error_lookup.py --search thermistor
 python .github/skills/3d-printer-expert/scripts/klipper_error_lookup.py --list
+
+# PERIPHERALS — Hardware compatibility & combination rules
+python .github/skills/3d-printer-expert/scripts/peripheral_lookup.py --name "TMC5160"
+python .github/skills/3d-printer-expert/scripts/peripheral_lookup.py --category temperature_sensors
+python .github/skills/3d-printer-expert/scripts/peripheral_lookup.py --search "PT1000"
+python .github/skills/3d-printer-expert/scripts/peripheral_lookup.py --combos sensorless
+python .github/skills/3d-printer-expert/scripts/peripheral_lookup.py --combos
+python .github/skills/3d-printer-expert/scripts/peripheral_lookup.py --list
 
 # MOONRAKER — Query Moonraker API (Mainsail/Fluidd/KlipperScreen backend)
 python .github/skills/3d-printer-expert/scripts/moonraker_api.py --action diagnose --host 192.168.1.100

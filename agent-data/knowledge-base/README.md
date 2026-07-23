@@ -1,8 +1,15 @@
 # Klipper Debugging Knowledge Base (Graphify corpus)
 
 This directory holds the scraped markdown corpus that Graphify ingests into
-the debugging knowledge graph. Content is **generated, not committed** —
-populate it with:
+the debugging knowledge graph. The corpus **IS committed** once scraped — it
+is the stored community knowledge (GitHub issues + forum threads) that makes
+answers instantly available without re-scraping.
+
+> ⚠ Scraping must run on a machine with normal network access (desktop) — the
+> cloud session's proxy blocks off-scope GitHub repos and the Discourse
+> forums. **See `TODO.md` at the repo root for the full seeding runbook.**
+
+Populate it with:
 
 ```bash
 # Targeted scrape (recommended — richest signal)

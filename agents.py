@@ -356,6 +356,41 @@ async def klipper_error_lookup(error: str = "", search: str = "",
     return await _run(args)
 
 
+async def peripheral_lookup(name: str = "", search: str = "",
+                            category: str = "", combos: str = "",
+                            action: str = "") -> str:
+    """Look up Klipper-compatible peripherals and the rules for combining
+    them — motor drivers (TMC2209/2130/2240/5160, step-dir), temperature
+    sensors (NTC thermistors, PT1000/PT100, thermocouples, chamber sensors),
+    hotends, heaters, probes (BLTouch, inductive, eddy current, load cell),
+    extruders (rotation_distance starting points), accelerometers, filament
+    sensors, endstops (incl. sensorless), fans, and CAN toolhead boards.
+    Use for hardware selection, 'can I combine X with Y', wiring/config
+    section questions, and sanity-checking a peripheral setup.
+    name: peripheral name (partial ok, e.g. 'TMC5160', 'BLTouch').
+    search: free-text search across the database.
+    category: motor_drivers|temperature_sensors|hotends|heaters|probes|
+              extruders|accelerometers|filament_sensors|endstops|fans|
+              can_toolhead_boards|displays_leds|combination_rules.
+    combos: term to filter combination rules (or 'all' for every rule).
+    action: 'list' to list all categories and entries."""
+    args = [sys.executable,
+        str(SKILLS_DIR / "3d-printer-expert" / "scripts" / "peripheral_lookup.py")]
+    if combos:
+        args.append("--combos")
+        if combos != "all":
+            args.append(combos)
+    elif name:
+        args.extend(["--name", name])
+    elif search:
+        args.extend(["--search", search])
+    elif category:
+        args.extend(["--category", category])
+    else:
+        args.append("--list")
+    return await _run(args)
+
+
 async def moonraker_api(action: str, **kwargs) -> str:
     """Query or control Moonraker (the API server behind Mainsail, Fluidd,
     and KlipperScreen) via its REST API.
@@ -550,6 +585,7 @@ def build_agent() -> "GitHubCopilotAgent":
             octoprint_websocket,
             print_quality_analyzer,
             klipper_error_lookup,
+            peripheral_lookup,
             moonraker_api,
             mainsail_diagnostics,
             pi_system_diagnostics,

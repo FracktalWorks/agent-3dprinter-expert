@@ -135,6 +135,7 @@ printer.cfg                          ← ONLY edit this file
 | `remote_config_editor` | `remote_config_editor.py` | Safely edit printer.cfg remotely — backup, diff, validate, enable/disable includes, apply+restart |
 | `klipper_docs` | `klipper_docs.py` | Klipper documentation reference — G-code commands, config topics, troubleshooting guides, official source links, Klipper Pi tools |
 | `klipper_error_lookup` | `klipper_error_lookup.py` | **Comprehensive error DB** — exact mechanism of every MCU/TMC/thermal/homing/extrusion/CAN/config error |
+| `peripheral_lookup` | `peripheral_lookup.py` | **Peripherals & combinations DB** — drivers, sensors, hotends, heaters, probes, extruders, endstops, CAN boards + permutation rules |
 | `moonraker_api` | `moonraker_api.py` | Moonraker REST API — klippy state, objects, temps, gcode, updates, power, service restarts, WebSocket test |
 | `mainsail_diagnostics` | `mainsail_diagnostics.py` | Mainsail stack health — nginx, Moonraker REST/WebSocket, CORS, versions, SSH layer, failure-mode reference |
 | `pi_system_diagnostics` | `pi_system_diagnostics.py` | Raspberry Pi health — undervoltage decode, thermal, SD, network, USB, CAN, services, boot config, journal |
@@ -157,6 +158,7 @@ Ask the user for:
 Run the appropriate diagnostic tool:
 - **Any error/shutdown** → `parse_klipper_log` FIRST (klippy.log is ground truth)
 - **Identify the exact error** → `klipper_error_lookup --error "<message>"` — mechanism, causes, fixes
+- **Hardware selection / combination questions** → `peripheral_lookup` — drivers, sensors, hotends, heaters, probes + the 14 permutation rules
 - **Unknown/rare error** → `graphify_knowledge_graph action=query`, then `klipper_source action=locate-error`
 - **Need to see raw logs on the Pi** → `ssh_manager --action logs --tail 200`
 - **OctoPrint issues** → `octoprint_api --action status` and `--action connection`

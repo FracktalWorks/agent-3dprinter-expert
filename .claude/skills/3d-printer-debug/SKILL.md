@@ -19,6 +19,7 @@ full SOP. All scripts run from the repo root with `python <script> --help`.
 |---------|---------|
 | Any Klipper error/shutdown | `python .github/skills/3d-printer-expert/scripts/klipper_log_parser.py --days 1` |
 | Explain an error message exactly | `python .github/skills/3d-printer-expert/scripts/klipper_error_lookup.py --error "<msg>"` |
+| Peripheral compatibility / combination rules | `python .github/skills/3d-printer-expert/scripts/peripheral_lookup.py --name "<part>"` or `--combos <term>` |
 | Klipper/Moonraker state, temps, gcode | `python .github/skills/3d-printer-expert/scripts/moonraker_api.py --action diagnose` |
 | OctoPrint status/job/files | `python .github/skills/3d-printer-expert/scripts/octoprint_api.py --action status` |
 | Mainsail blank/can't connect/502 | `python .github/skills/3d-printer-expert/scripts/mainsail_diagnostics.py --check all` |

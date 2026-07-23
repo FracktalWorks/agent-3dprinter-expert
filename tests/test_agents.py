@@ -60,6 +60,7 @@ def test_agent_has_tools():
             "remote_config_editor",
             "klipper_docs",
             "klipper_error_lookup",
+            "peripheral_lookup",
             "moonraker_api",
             "mainsail_diagnostics",
             "pi_system_diagnostics",

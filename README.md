@@ -41,6 +41,7 @@ quality DB) — but knowledge-graph queries will be unavailable.
 | Domain | Tooling |
 |--------|---------|
 | **Klipper errors** — MCU comms/shutdowns, TMC driver flags (ot, s2ga, uv_cp, open-load), thermal watchdog, homing/probing, extrusion guards, CAN bus, config | `klipper_error_lookup.py` (exact mechanism for each error), `klipper_log_parser.py`, `klipper_docs.py` |
+| **Peripherals & combinations** — motor drivers, temperature sensors, hotends, heaters, probes, extruders, accelerometers, endstops, CAN toolhead boards, and the rules for valid permutations | `peripheral_lookup.py` (`agent-data/klipper_peripherals_reference.json`) |
 | **Klipper source** — where and why an error is raised | `klipper_source_manager.py` (local clones of Klipper3d/klipper + FracktalWorks/klipper_IDEX) |
 | **OctoPrint** | `octoprint_api.py`, `octoprint_websocket_client.py`, `live_printer_diagnostics.py` |
 | **Moonraker** | `moonraker_api.py` (REST + WebSocket test, full health sweep) |
