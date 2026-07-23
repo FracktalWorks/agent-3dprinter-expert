@@ -46,5 +46,11 @@ Thumbs.db
 *.log
 logs/
 
+# Knowledge graph — the scraped corpus in agent-data/knowledge-base/ IS
+# committed (it's the stored knowledge); only the regenerable graph output
+# and local source clones are ignored. See TODO.md for seeding.
+graphify-out/
+.tmp/klipper-src/
+
 # Don't ignore .vscode - we want the settings
 !.vscode/

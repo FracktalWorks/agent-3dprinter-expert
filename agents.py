@@ -331,6 +331,229 @@ async def remote_config_editor(host: str = "", action: str = "read",
     return await _run(args)
 
 
+async def klipper_error_lookup(error: str = "", search: str = "",
+                               category: str = "", action: str = "") -> str:
+    """Explain exactly why a Klipper error occurs — comprehensive database of
+    MCU communication/shutdown errors, TMC driver flags (ot, s2ga, uv_cp,
+    open-load, GSTAT), thermal watchdog, homing/probing, extrusion guards,
+    CAN bus faults, and config errors, each with source location, mechanism,
+    diagnostics, and fixes.
+    Use FIRST whenever the user reports a specific Klipper error message.
+    error: the raw error message to identify.
+    search: free-text search across the database.
+    category: mcu_communication|mcu_shutdown|tmc_drivers|thermal|motion_homing|extrusion|canbus|config_startup.
+    action: 'list' to list all known errors."""
+    args = [sys.executable,
+        str(SKILLS_DIR / "3d-printer-expert" / "scripts" / "klipper_error_lookup.py")]
+    if error:
+        args.extend(["--error", error])
+    elif search:
+        args.extend(["--search", search])
+    elif category:
+        args.extend(["--category", category])
+    else:
+        args.append("--list")
+    return await _run(args)
+
+
+async def peripheral_lookup(name: str = "", search: str = "",
+                            category: str = "", combos: str = "",
+                            action: str = "") -> str:
+    """Look up Klipper-compatible peripherals and the rules for combining
+    them — motor drivers (TMC2209/2130/2240/5160, step-dir), temperature
+    sensors (NTC thermistors, PT1000/PT100, thermocouples, chamber sensors),
+    hotends, heaters, probes (BLTouch, inductive, eddy current, load cell),
+    extruders (rotation_distance starting points), accelerometers, filament
+    sensors, endstops (incl. sensorless), fans, and CAN toolhead boards.
+    Use for hardware selection, 'can I combine X with Y', wiring/config
+    section questions, and sanity-checking a peripheral setup.
+    name: peripheral name (partial ok, e.g. 'TMC5160', 'BLTouch').
+    search: free-text search across the database.
+    category: motor_drivers|temperature_sensors|hotends|heaters|probes|
+              extruders|accelerometers|filament_sensors|endstops|fans|
+              can_toolhead_boards|displays_leds|combination_rules.
+    combos: term to filter combination rules (or 'all' for every rule).
+    action: 'list' to list all categories and entries."""
+    args = [sys.executable,
+        str(SKILLS_DIR / "3d-printer-expert" / "scripts" / "peripheral_lookup.py")]
+    if combos:
+        args.append("--combos")
+        if combos != "all":
+            args.append(combos)
+    elif name:
+        args.extend(["--name", name])
+    elif search:
+        args.extend(["--search", search])
+    elif category:
+        args.extend(["--category", category])
+    else:
+        args.append("--list")
+    return await _run(args)
+
+
+async def moonraker_api(action: str, **kwargs) -> str:
+    """Query or control Moonraker (the API server behind Mainsail, Fluidd,
+    and KlipperScreen) via its REST API.
+    Use for klippy state, printer object queries, temperatures, running
+    G-code, job history, update manager status, power devices, service
+    restarts, or a full health sweep.
+    action: diagnose|info|server|klippy-state|temps|query|gcode|gcode-history|
+            print-status|history|sysinfo|proc-stats|update-status|power|files|
+            restart-klipper|firmware-restart|restart-service|websocket-test.
+    Additional kwargs: --host, --port, --api-key, --objects, --script, --service."""
+    args = [sys.executable,
+        str(SKILLS_DIR / "3d-printer-expert" / "scripts" / "moonraker_api.py"),
+        "--action", action]
+    for key, val in kwargs.items():
+        args.extend([f"--{key.replace('_', '-')}", str(val)])
+    return await _run(args)
+
+
+async def mainsail_diagnostics(check: str = "all", host: str = "",
+                               failures: str = "", **kwargs) -> str:
+    """Debug the Mainsail web UI stack layer by layer — nginx frontend,
+    Moonraker REST, WebSocket upgrade, CORS, component versions, and
+    SSH-level service/config checks.
+    Use when Mainsail shows a blank page, 'cannot connect to Moonraker',
+    502 errors, or update manager problems.
+    check: all|http|moonraker|websocket|versions|ssh.
+    failures: pass a failure-mode key (or empty string) to print the known
+    failure-mode reference instead of running live checks."""
+    args = [sys.executable,
+        str(SKILLS_DIR / "3d-printer-expert" / "scripts" / "mainsail_diagnostics.py")]
+    if failures:
+        args.extend(["--failures", failures])
+    else:
+        args.extend(["--check", check])
+        if host:
+            args.extend(["--host", host])
+        for key, val in kwargs.items():
+            if val:
+                args.extend([f"--{key.replace('_', '-')}", str(val)])
+    return await _run(args)
+
+
+async def pi_system_diagnostics(check: str = "all", host: str = "",
+                                failures: str = "", **kwargs) -> str:
+    """Raspberry Pi health checks via SSH — undervoltage/throttling decode,
+    thermals, SD card health, network, USB serial devices, CAN bus state,
+    systemd services, boot config, and journal errors.
+    Use EARLY when chasing random MCU disconnects, reboots, or slowness —
+    undervoltage and failing SD cards mimic dozens of software bugs.
+    check: all|power|thermal|storage|network|usb|can|services|boot-config|journal.
+    failures: failure-mode key (or empty) for the offline reference."""
+    args = [sys.executable,
+        str(SKILLS_DIR / "3d-printer-expert" / "scripts" / "pi_system_diagnostics.py")]
+    if failures:
+        args.extend(["--failures", failures])
+    else:
+        args.extend(["--check", check])
+        if host:
+            args.extend(["--host", host])
+        for key, val in kwargs.items():
+            if val:
+                args.extend([f"--{key.replace('_', '-')}", str(val)])
+    return await _run(args)
+
+
+async def display_diagnostics(check: str = "all", host: str = "",
+                              failures: str = "", **kwargs) -> str:
+    """Debug display boards on the printer's Pi — SPI TFT panels (fbtft
+    overlays), HDMI and DSI screens, framebuffer/KMS state, touch input and
+    calibration, KlipperScreen service and logs, and backlight control.
+    Use for white/black screens, no HDMI signal, inverted touch, or
+    KlipperScreen failures.
+    check: all|boot-config|framebuffer|kms|spi|touch|hdmi|klipperscreen|backlight|dmesg.
+    failures: failure-mode key (e.g. spi_white_screen, hdmi_no_signal) or
+    empty string for the full offline reference."""
+    args = [sys.executable,
+        str(SKILLS_DIR / "3d-printer-expert" / "scripts" / "display_diagnostics.py")]
+    if failures:
+        args.extend(["--failures", failures])
+    else:
+        args.extend(["--check", check])
+        if host:
+            args.extend(["--host", host])
+        for key, val in kwargs.items():
+            if val:
+                args.extend([f"--{key.replace('_', '-')}", str(val)])
+    return await _run(args)
+
+
+async def graphify_knowledge_graph(action: str = "check", query: str = "",
+                                   explain: str = "", node_a: str = "",
+                                   node_b: str = "") -> str:
+    """Build and query the Graphify knowledge graph of Klipper debugging
+    knowledge (scraped GitHub issues, forum threads, error DB, Klipper source).
+    Requires Graphify installed (uv tool install graphifyy && graphify install)
+    — 'check' verifies and prints install instructions if missing.
+    Use for errors not covered by klipper_error_lookup, or to explore how
+    errors, configs, and hardware relate.
+    action: check|build|update|status|query|explain|path|serve.
+    query: semantic question for action=query.
+    explain: entity name for action=explain.
+    node_a/node_b: entities for action=path."""
+    script = str(SKILLS_DIR / "klipper-knowledge-graph" / "scripts" / "graphify_kb.py")
+    args = [sys.executable, script]
+    if action == "query" and query:
+        args.extend(["--query", query])
+    elif action == "explain" and explain:
+        args.extend(["--explain", explain])
+    elif action == "path" and node_a and node_b:
+        args.extend(["--path", node_a, node_b])
+    elif action in ("build", "update", "status", "check"):
+        args.append(f"--{action}")
+    else:
+        args.append("--check")
+    return await _run(args)
+
+
+async def klipper_kb_scraper(query: str = "", source: str = "all",
+                             max_items: int = 50, stats: bool = False) -> str:
+    """Scrape Klipper debugging knowledge from GitHub issues (Klipper3d/klipper,
+    Arksine/moonraker, mainsail-crew/mainsail, OctoPrint/OctoPrint) and
+    Discourse forums (klipper.discourse.group, community.octoprint.org) into
+    the local corpus for the knowledge graph.
+    Use when the knowledge graph lacks coverage of a symptom — scrape
+    targeted, then rebuild with graphify_knowledge_graph action=update.
+    query: targeted search (recommended). source: all|github|discourse.
+    stats: True to just report corpus statistics."""
+    script = str(SKILLS_DIR / "klipper-knowledge-graph" / "scripts" / "klipper_kb_scraper.py")
+    args = [sys.executable, script]
+    if stats:
+        args.append("--stats")
+    else:
+        args.extend(["--source", source, "--max", str(max_items)])
+        if query:
+            args.extend(["--query", query])
+    return await _run(args)
+
+
+async def klipper_source(action: str = "status", error: str = "",
+                         pattern: str = "", repo: str = "klipper",
+                         context: int = 3) -> str:
+    """Manage and search local clones of the Klipper source code (official
+    Klipper3d/klipper, FracktalWorks klipper_IDEX fork, Moonraker) to find
+    exactly where and why an error is raised.
+    Use to answer 'where does this error come from' from the actual source.
+    action: status|clone|update|locate-error|grep.
+    error: error message for locate-error. pattern: regex for grep.
+    repo: klipper|idex|moonraker (for clone)."""
+    script = str(SKILLS_DIR / "klipper-knowledge-graph" / "scripts" / "klipper_source_manager.py")
+    args = [sys.executable, script]
+    if action == "locate-error" and error:
+        args.extend(["--locate-error", error, "--context", str(context)])
+    elif action == "grep" and pattern:
+        args.extend(["--grep", pattern, "--context", str(context)])
+    elif action == "clone":
+        args.extend(["--clone", "--repo", repo])
+    elif action == "update":
+        args.append("--update")
+    else:
+        args.append("--status")
+    return await _run(args)
+
+
 # ── LiteLLM provider (CommandCenter mode) ────────────────────────────────────
 
 def _llm_provider() -> dict[str, Any]:
@@ -346,8 +569,8 @@ def build_agent() -> "GitHubCopilotAgent":
     from copilot.types import PermissionHandler                     # type: ignore[import]
 
     return GitHubCopilotAgent(
-        name="3d-printer-expert",
-        description="Debugs 3D printer firmware/software issues — Klipper logs, OctoPrint API, printer.cfg analysis, MCU errors, thermistor problems, and ControlCenter codebase reference.",
+        name="anil",
+        description="Anil — expert 3D printer debugging agent. Full-stack Klipper diagnosis (every MCU/TMC/thermal error explained), OctoPrint + Moonraker + Mainsail tooling, Raspberry Pi and SPI/HDMI display debugging, electronics diagnostics, and a Graphify-powered knowledge graph of Klipper issues and forums.",
         instructions=SYSTEM_PROMPT,
         tools=[
             parse_klipper_log,
@@ -361,6 +584,15 @@ def build_agent() -> "GitHubCopilotAgent":
             live_printer_diagnostics,
             octoprint_websocket,
             print_quality_analyzer,
+            klipper_error_lookup,
+            peripheral_lookup,
+            moonraker_api,
+            mainsail_diagnostics,
+            pi_system_diagnostics,
+            display_diagnostics,
+            graphify_knowledge_graph,
+            klipper_kb_scraper,
+            klipper_source,
         ],
         default_options={
             "model": "claude-sonnet-4-5",

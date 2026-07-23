@@ -1,0 +1,549 @@
+{
+  "_meta": {
+    "description": "Comprehensive Klipper error reference — every common MCU, TMC/motor driver, thermal, motion, and CAN error with the exact mechanism that raises it in the Klipper source, diagnostics, and fixes. Used by klipper_error_lookup.py and ingested into the Graphify knowledge graph.",
+    "source_of_truth": "Klipper source (klippy/*.py, klippy/extras/*.py, src/*.c) — use klipper_source_manager.py --locate-error to see the exact raise site",
+    "version": "1.0.0"
+  },
+  "categories": {
+    "mcu_communication": {
+      "description": "Errors in the host↔MCU serial/USB/CAN link — klippy/mcu.py, klippy/serialhdl.py, klippy/serialqueue",
+      "errors": [
+        {
+          "id": "mcu_unable_to_connect",
+          "patterns": ["Unable to connect", "mcu: Unable to connect"],
+          "example": "mcu 'mcu': Unable to connect",
+          "raised_in": "klippy/mcu.py (_mcu_identify → serialhdl connect failure)",
+          "why": "The host opened (or failed to open) the serial device but never completed the identify handshake — the MCU did not answer the 'identify' command with its data dictionary. The MCU is absent, not running Klipper firmware, running a different firmware version/dictionary, or the wrong device node was configured.",
+          "common_causes": [
+            "Wrong or stale 'serial:' path in [mcu] — device re-enumerated (use /dev/serial/by-id/)",
+            "MCU never flashed, or flashed with mismatched Klipper version after a host update",
+            "Board held in DFU/boot mode, or crashed before USB enumeration",
+            "USB cable is power-only (no data lines) or damaged",
+            "Baud mismatch on UART-connected MCUs"
+          ],
+          "diagnostics": [
+            "ls /dev/serial/by-id/ — is the board enumerated at all?",
+            "dmesg | tail — USB connect/disconnect or enumeration errors",
+            "After host update: reflash MCU (version must match klippy)"
+          ],
+          "fixes": [
+            "Point [mcu] serial: at the current /dev/serial/by-id/ path",
+            "Reflash Klipper firmware matching the host version (make flash)",
+            "Replace USB cable with a known-good data cable"
+          ]
+        },
+        {
+          "id": "mcu_lost_communication",
+          "patterns": ["Lost communication with MCU"],
+          "example": "Lost communication with MCU 'mcu'",
+          "raised_in": "klippy/mcu.py (serialqueue retransmit exhaustion / disconnect callback)",
+          "why": "The serial transport died mid-session: the low-level serialqueue stopped receiving acknowledgements and retransmits were exhausted, or the OS closed the device node. This is a transport-layer failure, not a firmware logic error — the MCU either reset (watchdog/brownout), lost USB (EMI, cable), or the CAN bridge dropped.",
+          "common_causes": [
+            "Undervoltage/brownout resetting the MCU or the Pi's USB controller (check vcgencmd get_throttled)",
+            "EMI from stepper/heater wiring coupling into an unshielded USB cable",
+            "Loose USB connector vibrating during fast moves",
+            "5V rail sag when heaters/fans switch",
+            "CAN bus errors reaching bus-off state (for CAN-bridge MCUs)"
+          ],
+          "diagnostics": [
+            "pi_system_diagnostics.py --check power — decode throttling flags first",
+            "dmesg — 'usb disconnect' timestamps vs klippy.log shutdown time",
+            "ip -details -s link show can0 — error counters/bus-off for CAN setups",
+            "klipper_log_parser.py — look at 'Stats' lines: bytes_retransmit rising before the drop"
+          ],
+          "fixes": [
+            "Fix power delivery (proper 5V/3A+ supply, short thick cables)",
+            "Shielded/shorter USB cable routed away from motor and heater wiring",
+            "For CAN: verify both 120Ω terminators and bitrate 500000 on all nodes"
+          ]
+        },
+        {
+          "id": "serial_port_open_fail",
+          "patterns": ["Unable to open serial port"],
+          "example": "Unable to open serial port: [Errno 2] could not open port",
+          "raised_in": "klippy/serialhdl.py (pyserial open failure)",
+          "why": "The OS refused to open the configured device node — it does not exist, or permissions block the klipper user. Klipper never even reached the MCU.",
+          "common_causes": [
+            "Device path typo or board unplugged/re-enumerated to a different node",
+            "klipper user not in dialout/tty group",
+            "Another process (OctoPrint serial connection, debug terminal) holds the port"
+          ],
+          "diagnostics": [
+            "ls -la /dev/serial/by-id/",
+            "lsof /dev/ttyACM0 (or the configured node) — who holds it?",
+            "groups klipper-user"
+          ],
+          "fixes": [
+            "Use the stable /dev/serial/by-id/ path",
+            "In OctoPrint, keep the serial connection set to VIRTUAL/Klipper, never the raw MCU port",
+            "usermod -aG dialout <user> and re-login"
+          ]
+        },
+        {
+          "id": "mcu_protocol_mismatch",
+          "patterns": ["Protocol error", "Command format mismatch", "got version"],
+          "example": "mcu 'mcu': Command format mismatch",
+          "raised_in": "klippy/mcu.py (data dictionary comparison at connect)",
+          "why": "The MCU's compiled command dictionary differs from what the host expects — host and firmware were built from different Klipper commits. Klipper's host↔MCU protocol is regenerated per build, so versions must match exactly.",
+          "common_causes": ["Host updated (git pull / update manager) without reflashing MCUs", "One of several MCUs (toolhead board!) reflashed but not the others"],
+          "diagnostics": ["Compare 'Klipper version' in klippy.log against firmware version in the connect banner for EVERY [mcu]"],
+          "fixes": ["Rebuild and reflash ALL MCUs (mainboard + toolhead + Pi mcu if used) after every Klipper update"]
+        },
+        {
+          "id": "timeout_clock_sync",
+          "patterns": ["Timeout on wait for 'clock' response", "Lost communication during clock sync"],
+          "example": "Timeout on wait for 'clock' response",
+          "raised_in": "klippy/clocksync.py",
+          "why": "The periodic clock synchronization query (host polls each MCU's clock to map MCU ticks↔host time) went unanswered. The link is saturated, glitching, or the MCU stalled. Clock sync failures precede most 'Timer too close' cascades on marginal links.",
+          "common_causes": ["Same transport causes as Lost communication", "Severe host CPU starvation (SD card I/O stalls, throttling)"],
+          "diagnostics": ["visualize_data.py --type stats — srtt/rttvar growth", "pi_system_diagnostics.py --check storage"],
+          "fixes": ["Fix the transport/power issue; move host off failing SD card"]
+        }
+      ]
+    },
+    "mcu_shutdown": {
+      "description": "Firmware-initiated shutdowns — string literals in src/*.c, surfaced by klippy as 'MCU shutdown: <reason>'",
+      "errors": [
+        {
+          "id": "timer_too_close",
+          "patterns": ["Timer too close"],
+          "example": "MCU 'mcu' shutdown: Timer too close",
+          "raised_in": "src/sched.c (sched_timer_dispatch: waketime already in the past)",
+          "why": "The MCU scheduler dequeued a timer whose wake time had ALREADY passed — the MCU could not keep up with the event stream. Every step pulse, PWM edge, and ADC sample is a hard-deadline timer; when per-tick load exceeds what the MCU core can service (or the host delivered a command burst late), the deadline is missed and the firmware shuts down rather than lose motion integrity.",
+          "common_causes": [
+            "Too many step events: very high microstepping (256) + high speed on multiple steppers",
+            "Overloaded MCU also driving SPI displays/neopixels with tight timing",
+            "Host-side stall delivered a late burst (SD card pause, CPU throttle) — the MCU then sees past-due timers",
+            "CAN bus congestion delaying toolhead MCU commands",
+            "A single underpowered MCU (8-bit AVR) asked for modern speeds"
+          ],
+          "diagnostics": [
+            "klipper_log_parser.py — check Stats: mcu_task_avg/mcu_task_stddev climbing before shutdown",
+            "Which MCU shut down? (mainboard vs toolhead) — points at USB vs CAN path",
+            "pi_system_diagnostics.py --check power/thermal — host stall causes"
+          ],
+          "fixes": [
+            "Reduce microsteps (16 is plenty with interpolation), lower max_velocity/accel",
+            "Move ancillary devices (displays, LEDs) off the motion MCU",
+            "Fix host stalls (SD card, throttling); for CAN raise txqueuelen, check bus load"
+          ]
+        },
+        {
+          "id": "rescheduled_timer_past",
+          "patterns": ["Rescheduled timer in the past", "Missed scheduling of next"],
+          "example": "MCU shutdown: Missed scheduling of next digital out event",
+          "raised_in": "src/sched.c / src/pwmcmds.c / src/basecmd.c",
+          "why": "Same deadline-miss family as 'Timer too close' but for a specific queued event type (digital pin, hard PWM): the scheduled toggle time for a pin event passed before the MCU serviced it. For heater/fan pins Klipper treats this as safety-critical and shuts down.",
+          "common_causes": ["MCU overload (see timer_too_close)", "Extremely small cycle_time on a soft PWM pin", "Host comm stall"],
+          "diagnostics": ["Identify the pin/event in the shutdown message", "Same stats analysis as timer_too_close"],
+          "fixes": ["Increase cycle_time on PWM pins (0.010 default heaters)", "Reduce MCU load; use hardware PWM pins where possible"]
+        },
+        {
+          "id": "watchdog",
+          "patterns": ["Watchdog timer!"],
+          "example": "MCU shutdown: Watchdog timer!",
+          "raised_in": "src/generic/ (hardware watchdog ISR)",
+          "why": "The firmware main loop stopped petting the hardware watchdog for the timeout period — the MCU core was hung or stuck in a fault handler. This is a hardware/electrical-level fault, not scheduling pressure: crystal dropout, silicon fault, severe EMI, or supply glitch froze the core.",
+          "common_causes": ["Power supply glitch/brownout on the MCU rail", "EMI strike (static discharge through probe/endstop wiring)", "Failing crystal/board fault"],
+          "diagnostics": ["Correlate with heater/motor switching events", "Inspect grounding; check if repeatable at a specific print moment"],
+          "fixes": ["Fix supply and grounding; replace board if it recurs without electrical cause"]
+        },
+        {
+          "id": "command_request_shutdown",
+          "patterns": ["Command request"],
+          "example": "MCU shutdown: Command request",
+          "raised_in": "src/command.c (host sent explicit shutdown), triggered from klippy",
+          "why": "Not a fault in itself — the HOST commanded this MCU to shut down, almost always because ANOTHER MCU or host module shut down first and klippy propagated emergency-stop to all MCUs. The real error is the FIRST shutdown line in klippy.log (or an M112).",
+          "common_causes": ["Cascade from the real failing MCU (e.g. toolhead CAN board)", "User/macro issued M112"],
+          "diagnostics": ["klipper_log_parser.py — find the FIRST shutdown event before the cascade"],
+          "fixes": ["Diagnose the original shutdown; this one is a symptom"]
+        },
+        {
+          "id": "adc_out_of_range",
+          "patterns": ["ADC out of range"],
+          "example": "MCU 'mcu' shutdown: ADC out of range",
+          "raised_in": "src/adccmds.c (analog_in_event: sample outside min_value..max_value)",
+          "why": "A thermistor ADC sample fell outside the sanity window the host computed from min_temp/max_temp for that sensor. An open circuit reads full-scale (≈max ADC → reports very low temp), a short reads ≈0. The firmware cannot distinguish 'broken sensor' from 'on fire', so it shuts down. It is a HARDWARE/wiring signal in ~90% of cases — or the configured sensor_type/pullup doesn't match the physical sensor.",
+          "common_causes": [
+            "Thermistor wire fatigue/break at the hotend (open) — most common",
+            "Crimped/pinched thermistor lead shorting to ground",
+            "Loose Molex/JST connector on toolhead or mainboard",
+            "Wrong sensor_type (e.g. Generic 3950 configured for EPCOS 100K B57560G104F — Fracktal standard)",
+            "min_temp: 0 in an unheated chamber that dips below 0°C at startup"
+          ],
+          "diagnostics": [
+            "Measure thermistor resistance at connector (EPCOS 100K ≈100kΩ @25°C)",
+            "Wiggle-test the harness while watching temps (visualize_data.py --type temperature)",
+            "Compare which sensor: extruder vs bed vs chamber narrows the harness"
+          ],
+          "fixes": [
+            "Repair/replace thermistor or harness segment",
+            "Correct sensor_type in the toolhead cfg",
+            "Widen min_temp/max_temp only if legitimately out of range (cold room)"
+          ]
+        },
+        {
+          "id": "move_queue_overflow",
+          "patterns": ["Move queue overflow"],
+          "example": "MCU shutdown: Move queue overflow",
+          "raised_in": "src/basecmd.c (move queue alloc fail)",
+          "why": "The host streamed more queued moves than the MCU's RAM-limited move queue can hold — host flow-control accounting and firmware queue size disagree. Rare in normal operation; indicates a host bug, a firmware/host version mismatch, or custom firmware with a shrunken queue.",
+          "common_causes": ["Host/firmware version mismatch", "Out-of-tree firmware build with reduced RAM"],
+          "diagnostics": ["Reflash matching firmware; check for custom builds"],
+          "fixes": ["Reflash all MCUs from the same source tree as the host"]
+        },
+        {
+          "id": "stepper_past_position",
+          "patterns": ["Stepper too far in past", "No next step"],
+          "example": "MCU shutdown: Stepper 'stepper_x' too far in past",
+          "raised_in": "src/stepper.c (stepper_load_next deadline check)",
+          "why": "A step event's scheduled time was already in the past when the stepper driver code loaded it — the step queue ran dry then received stale events. Effectively 'Timer too close' localized to one stepper's step compression stream, same root causes.",
+          "common_causes": ["See timer_too_close", "CAN latency for toolhead-driven steppers"],
+          "diagnostics": ["Which stepper? maps to which MCU/bus", "Stats analysis as timer_too_close"],
+          "fixes": ["Same as timer_too_close"]
+        }
+      ]
+    },
+    "tmc_drivers": {
+      "description": "Trinamic driver errors — klippy/extras/tmc.py decodes GSTAT/DRV_STATUS and raises with flag annotations. SPI (TMC5160/2130) and UART (TMC2209/2208) variants. Fracktal: TMC5160 X/Y/Z (SPI, 1.2A), TMC2209 extruder (UART, 0.85A).",
+      "errors": [
+        {
+          "id": "tmc_uart_read_fail",
+          "patterns": ["Unable to read tmc uart", "register IFCNT"],
+          "example": "Unable to read tmc uart 'stepper_e' register IFCNT",
+          "raised_in": "klippy/extras/tmc_uart.py (no/invalid reply to register read)",
+          "why": "The single-wire UART transaction to a TMC2209/2208 got no valid reply. The driver is unpowered, the PDN_UART wiring/pin assignment is wrong, the uart_address doesn't match the driver's MS1/MS2 strapping, or two drivers collide on one address.",
+          "common_causes": [
+            "VM (motor voltage) absent — TMC logic won't respond on UART without VM on many boards",
+            "Wrong uart_pin / tx_pin in config",
+            "uart_address mismatch or duplicate on shared UART",
+            "Driver socket not fully seated (plug-in driver boards)"
+          ],
+          "diagnostics": [
+            "Did it EVER work? If new build → wiring/address; if sudden → power or dead driver",
+            "Check 24V/48V motor rail with a meter",
+            "DUMP_TMC STEPPER=stepper_x on a known-good channel to isolate"
+          ],
+          "fixes": ["Correct uart_pin/address per board pinout", "Restore VM before Klipper connect", "Replace failed driver"]
+        },
+        {
+          "id": "tmc_spi_read_fail",
+          "patterns": ["Unable to read tmc spi", "Invalid tmc spi response"],
+          "example": "Unable to read tmc spi 'stepper_x' register GSTAT",
+          "raised_in": "klippy/extras/tmc2130.py / tmc5160.py (SPI response all-zeros/all-ones check)",
+          "why": "SPI transfer to a TMC5160/2130 returned an invalid pattern (all 0x00 or 0xFF) — MISO never toggled. Chip-select routing, SPI bus wiring, missing driver power, or a dead driver. All-zeros usually means no power/no chip; all-ones usually means MISO floating high (wrong CS, chip absent).",
+          "common_causes": [
+            "cs_pin wrong or shared incorrectly across drivers",
+            "VM rail missing (5160 needs motor voltage for full register access on some rails)",
+            "SPI bus pins (spi_software_*/spi_bus) misconfigured",
+            "Driver killed by a prior short — s2g events often precede death"
+          ],
+          "diagnostics": ["Compare all drivers on the same bus: one failing = CS/chip; all failing = bus/power", "Measure VM at the driver"],
+          "fixes": ["Fix cs_pin/bus config", "Restore motor supply sequencing", "Replace driver"]
+        },
+        {
+          "id": "tmc_drv_err_overtemp",
+          "patterns": ["ot=1(OvertempError!)", "OvertempError"],
+          "example": "TMC 'stepper_x' reports error: DRV_STATUS: ... ot=1(OvertempError!)",
+          "raised_in": "klippy/extras/tmc.py (DRV_STATUS decode, drv_err handler)",
+          "why": "Driver die exceeded ~150°C and hardware-disabled outputs. The silicon protects itself; steps issued during the shutdown are lost (layer shift at best). Cause is thermal: too much RMS current for the cooling available, or chamber/enclosure heat soak.",
+          "common_causes": [
+            "run_current set above the driver+heatsink thermal budget (Fracktal spec: 1.2A on TMC5160 X/Y)",
+            "Electronics-bay fan failed or airflow blocked",
+            "Heated-chamber machines soaking the electronics compartment",
+            "StealthChop at high speed forcing extra losses"
+          ],
+          "diagnostics": ["otpw warnings in log before the error (visualize/grep 'otpw')", "Check ELECTRONICS_CHAMBER_COOLING fan operation", "IR-check driver heatsinks after a long print"],
+          "fixes": ["Restore cooling; lower run_current 10–15%", "spread_cycle for high-speed axes", "Re-seat heatsinks with proper pads"]
+        },
+        {
+          "id": "tmc_drv_err_short_gnd",
+          "patterns": ["s2ga=1", "s2gb=1", "ShortToGND"],
+          "example": "TMC 'stepper_x' reports error: ... s2ga=1(ShortToGND_A!)",
+          "raised_in": "klippy/extras/tmc.py (DRV_STATUS s2ga/s2gb)",
+          "why": "The driver's phase-A/B low-side detected current flow indicating that motor phase is shorted to ground — a hard electrical fault detection, latched until driver re-enable. Real short in the harness/motor, or a false trip from aggressive current spikes on marginal wiring.",
+          "common_causes": [
+            "Pinched/abraded motor cable shorting to frame ground (check cable chains!)",
+            "Motor connector pin bridged by swarf/solder whisker",
+            "Motor winding insulation failure (measure phase-to-case resistance ≈ ∞)",
+            "Occasionally: dying driver false-reporting"
+          ],
+          "diagnostics": [
+            "Unplug motor at driver end → error persists on ENABLE = driver side; gone = harness/motor",
+            "Meter: phase-to-frame must be open; phase resistance ≈1–3Ω per coil",
+            "Inspect the full cable run, especially in drag chains"
+          ],
+          "fixes": ["Repair harness/replace motor as isolated", "Replace driver if it trips with no motor attached"]
+        },
+        {
+          "id": "tmc_drv_err_short_supply",
+          "patterns": ["s2vsa=1", "s2vsb=1", "ShortToSupply"],
+          "example": "TMC 'stepper_x' reports error: ... s2vsa=1(ShortToSupply_A!)",
+          "raised_in": "klippy/extras/tmc.py (DRV_STATUS s2vsa/s2vsb)",
+          "why": "Phase output shorted to the motor supply rail (VM) — mirror image of short-to-ground: high-side detection tripped. Same physical fault class: harness or connector bridging a phase to VM, or driver failure.",
+          "common_causes": ["Harness short to a VM-carrying conductor", "Connector bridge", "Failed driver output stage"],
+          "diagnostics": ["Same isolation procedure as short-to-ground"],
+          "fixes": ["Repair the short; replace driver if it reports with motor disconnected"]
+        },
+        {
+          "id": "tmc_open_load",
+          "patterns": ["ola=1", "olb=1", "OpenLoad"],
+          "example": "DRV_STATUS: ... ola=1(OpenLoad_A!)",
+          "raised_in": "klippy/extras/tmc.py (DRV_STATUS ola/olb — reported, not always fatal)",
+          "why": "The driver couldn't push expected current through a phase — the circuit looks open. A genuinely broken wire/connector, OR a false positive: open-load detection is unreliable at very low currents, at standstill, and with stealthChop. Treat as real only if paired with a motor that's actually not moving/skipping.",
+          "common_causes": ["Broken crimp in motor connector (intermittent!)", "Cable-chain conductor fatigue-break", "False positive at low run_current/idle"],
+          "diagnostics": ["Wiggle-test harness while running STEPPER_BUZZ", "Measure phase continuity end-to-end (1–3Ω)"],
+          "fixes": ["Re-crimp/replace harness section", "Ignore if purely cosmetic at idle and motion is perfect"]
+        },
+        {
+          "id": "tmc_uv_cp",
+          "patterns": ["uv_cp=1", "UndervoltageError", "GSTAT: 00000004"],
+          "example": "TMC 'stepper_x' reports error: GSTAT: ... uv_cp=1(Undervoltage!)",
+          "raised_in": "klippy/extras/tmc.py (GSTAT uv_cp)",
+          "why": "The driver's internal charge pump (which generates gate-drive voltage for the output FETs) fell below its undervoltage threshold — VM (motor supply) is missing, sagging, or came up after driver init. Outputs are disabled until power is sane. On Fracktal machines this classically means the 24V rail dipped (PSU overload/brownout) or motor power sequencing.",
+          "common_causes": [
+            "24V/48V rail sag under simultaneous heater+motor load (weak/failing PSU)",
+            "Motor supply switched on AFTER Klipper initialized the driver",
+            "Loose VM terminal screw / crimp heating and dropping voltage",
+            "PSU overcurrent protection hiccuping"
+          ],
+          "diagnostics": [
+            "Scope/meter the VM rail during the failure window",
+            "pi_system_diagnostics + PSU checks in electronics_hardware_reference.json",
+            "Does it happen at heater-on moments? → PSU capacity"
+          ],
+          "fixes": ["Fix supply sizing/wiring; torque terminal screws", "Power sequencing: VM before/with logic", "FIRMWARE_RESTART after restoring power re-inits drivers"]
+        },
+        {
+          "id": "tmc_gstat_reset",
+          "patterns": ["reset=1", "GSTAT: 00000001"],
+          "example": "TMC 'stepper_x' reports error: GSTAT: 00000001 reset=1(Reset)",
+          "raised_in": "klippy/extras/tmc.py (GSTAT reset flag)",
+          "why": "The driver reports it has been reset since configuration — its registers reverted to defaults while Klipper believed it was configured. VM glitched or ESD hit the chip; motion after an unnoticed reset would use wrong currents, hence the error.",
+          "common_causes": ["VM brownout blip", "ESD/EMI event", "Hot-unplugging a motor (inductive kick resets driver)"],
+          "diagnostics": ["Correlate with power events; NEVER unplug motors while powered"],
+          "fixes": ["Fix power stability; FIRMWARE_RESTART reconfigures drivers"]
+        },
+        {
+          "id": "tmc_stallguard_sensorless",
+          "patterns": ["Endstop x still triggered after retract", "sensorless"],
+          "example": "Sensorless homing: 'Endstop x still triggered after retract' or homing stops instantly",
+          "raised_in": "klippy/extras/homing.py + TMC virtual_endstop path",
+          "why": "With sensorless homing the TMC's StallGuard load measurement is the endstop. If SGTHRS/sgt is too sensitive the 'stall' asserts immediately or never clears (instant/false trigger); too insensitive and the axis grinds the frame (no trigger). Homing speed changes StallGuard readings, so threshold is speed-specific.",
+          "common_causes": ["driver_SGTHRS mis-tuned", "homing_speed changed after tuning", "current too low for StallGuard signal", "homing_retract_dist: 0 missing/wrong per docs"],
+          "diagnostics": ["Tune per Klipper sensorless guide: find min/max working SGTHRS, use midpoint", "Verify hold/run current during homing macro"],
+          "fixes": ["Retune SGTHRS at the actual homing speed and current"]
+        }
+      ]
+    },
+    "thermal": {
+      "description": "Heater/thermistor safety errors — klippy/extras/verify_heater.py, heaters.py",
+      "errors": [
+        {
+          "id": "heater_not_heating",
+          "patterns": ["not heating at expected rate", "Heater extruder not heating"],
+          "example": "Heater extruder not heating at expected rate",
+          "raised_in": "klippy/extras/verify_heater.py (check_gain_time window without heating_gain °C rise)",
+          "why": "While driving the heater, temperature failed to rise by heating_gain (default 2°C) within check_gain_time (default 20s hotend/60s bed). The watchdog concluded the heater's power isn't reaching the sensor: dead/weak heater, detached thermistor (reads ambient while block heats — FIRE RISK this check exists to catch), sagging supply, or genuinely undersized heater vs airflow.",
+          "common_causes": [
+            "Heater cartridge failed or connector burnt (measure: 40W@24V ≈ 14Ω; 60W ≈ 9.6Ω)",
+            "Thermistor no longer seated in the block (THE dangerous case)",
+            "Part-cooling fan blasting the block at high fan speeds",
+            "PSU rail sag when bed+hotend heat together",
+            "Silicone sock missing on a draft-exposed hotend"
+          ],
+          "diagnostics": [
+            "Physically verify thermistor and heater seated in the block FIRST",
+            "Measure heater resistance and supply voltage under load",
+            "visualize_data.py --type temperature — slope analysis: slow-but-steady = undersized; flat = dead"
+          ],
+          "fixes": [
+            "Re-seat/replace thermistor and heater; repair connectors",
+            "Only if hardware verified good and merely slow: raise check_gain_time (e.g. 35–60s) — never as a first response",
+            "PID_CALIBRATE after any thermal hardware change"
+          ]
+        },
+        {
+          "id": "thermal_runaway_deviation",
+          "patterns": ["Heater heater_bed not maintaining", "max_error exceeded", "Thermal runaway"],
+          "example": "Heater extruder not maintaining target temperature (verify_heater max_error)",
+          "raised_in": "klippy/extras/verify_heater.py (integrated error > max_error ≈120)",
+          "why": "While holding target, the integrated temperature shortfall exceeded max_error — the heater can't sustain the setpoint. Same physical causes as not-heating but during steady-state: airflow, drafts, failing heater, or PID badly tuned after hardware change.",
+          "common_causes": ["Fan-speed-correlated dips (cooling overwhelms heater)", "Aging heater cartridge", "PID tuned at different conditions"],
+          "diagnostics": ["Temp graph vs fan speed events", "PID_CALIBRATE at working conditions (fan 100% for hotend per docs guidance)"],
+          "fixes": ["Sock/shroud fixes, new cartridge, retune PID"]
+        },
+        {
+          "id": "max_temp_exceeded",
+          "patterns": ["exceeds maximum temperature", "max_temp"],
+          "example": "temperature 285.3 exceeds maximum temperature 280.0",
+          "raised_in": "klippy/extras/heaters.py (sample > max_temp)",
+          "why": "A sensor read above configured max_temp → emergency shutdown. Either real overshoot (aggressive PID, stuck MOSFET) or sensor noise spike. A SHORTED MOSFET drives the heater at 100% regardless of firmware — Klipper can only cut power upstream if wired to; treat repeated occurrences as hardware-critical.",
+          "common_causes": ["PID overshoot after hardware change", "Failed (shorted) heater MOSFET", "Noise spike on thermistor line routed with motor wiring"],
+          "diagnostics": ["Does temp keep rising AFTER shutdown? → MOSFET shorted, kill mains power", "Overshoot only at target approach → PID"],
+          "fixes": ["Replace board/MOSFET if shorted", "PID_CALIBRATE", "Reroute/shield thermistor wiring"]
+        }
+      ]
+    },
+    "motion_homing": {
+      "description": "Homing, probing, and kinematic limit errors — klippy/extras/homing.py, probe.py, toolhead.py",
+      "errors": [
+        {
+          "id": "endstop_still_triggered",
+          "patterns": ["still triggered after retract"],
+          "example": "Endstop x still triggered after retract",
+          "raised_in": "klippy/extras/homing.py (post-retract endstop re-check)",
+          "why": "After the homing move hit the endstop and retracted homing_retract_dist, the endstop STILL read triggered. Either the carriage physically didn't move away (mechanical bind, wrong retract distance), or the endstop signal is stuck: miswired (NC/NO), shorted, or electrically noisy.",
+          "common_causes": ["Endstop wire shorted / switch jammed", "homing_retract_dist: 0 with a switch that needs travel to release", "Sensorless: SGTHRS too sensitive (see TMC)", "Crashed carriage bottomed out"],
+          "diagnostics": ["QUERY_ENDSTOPS with carriage away from the switch — must read open", "Manually click the switch while querying"],
+          "fixes": ["Rewire/replace switch; set proper retract distance; retune sensorless"]
+        },
+        {
+          "id": "no_trigger_full_movement",
+          "patterns": ["No trigger on", "after full movement"],
+          "example": "No trigger on probe after full movement",
+          "raised_in": "klippy/extras/homing.py (probe/endstop never fired within move)",
+          "why": "The homing/probing move completed its maximum travel without the trigger firing. The switch/probe is dead, unplugged, on the wrong pin, or the physical distance exceeds the configured travel (position_max/z range too small, probe above bed range).",
+          "common_causes": ["Probe unplugged/dead (BLTouch cable fatigue in cable chain)", "Wrong pin or missing pull-up (^) in config", "Z travel configured shorter than real distance", "Inductive probe over non-metal bed area"],
+          "diagnostics": ["QUERY_PROBE / QUERY_ENDSTOPS while manually triggering", "Check connector at toolhead board (RP2040 CAN board on Fracktal)"],
+          "fixes": ["Repair wiring/pin config; correct position_min/max; verify probe supply voltage"]
+        },
+        {
+          "id": "probe_triggered_prior",
+          "patterns": ["Probe triggered prior to movement"],
+          "example": "Probe triggered prior to movement",
+          "raised_in": "klippy/extras/probe.py (pre-move state check)",
+          "why": "At probe-start the probe already read triggered — Klipper refuses to probe because it can't detect the trigger transition. BLTouch pin still deployed/blocked, inverted signal logic, or nozzle already at/below trigger height.",
+          "common_causes": ["BLTouch pin fouled with plastic / bent", "Signal inverted (missing '!' on pin)", "Starting probe below trigger point"],
+          "diagnostics": ["BLTOUCH_DEBUG COMMAND=pin_down/pin_up/self_test", "QUERY_PROBE at safe Z height"],
+          "fixes": ["Clean/replace BLTouch pin; fix pin inversion; raise Z before probing"]
+        },
+        {
+          "id": "move_out_of_range",
+          "patterns": ["Move out of range"],
+          "example": "Move out of range: 305.000 152.000 5.000 [222.000]",
+          "raised_in": "klippy/toolhead.py / kinematics check_move",
+          "why": "A commanded move targets coordinates outside the axis limits derived from position_min/position_max. G-code asked for space the machine doesn't have: slicer origin mismatch, missing/wrong bed size in slicer, offsets (KAMP/mesh, tool offsets on IDEX) pushing beyond limits, or homing set a wrong origin.",
+          "common_causes": ["Slicer bed size/origin ≠ printer.cfg limits", "IDEX: T1 offset applied without dual-carriage range accounting (TwinDragon!)", "Z hop at max Z", "Mesh/adaptive purge outside bed"],
+          "diagnostics": ["Which coordinate exceeded what limit (values in the message)", "GET_POSITION after homing — sane origin?"],
+          "fixes": ["Align slicer machine settings with printer.cfg", "Fix dual_carriage offsets per klipper_IDEX conventions"]
+        },
+        {
+          "id": "must_home_first",
+          "patterns": ["Must home axis first"],
+          "example": "Must home axis first: 150.000 150.000 5.000",
+          "raised_in": "kinematics (unhomed axis motion attempt)",
+          "why": "Motion was commanded while axes are in the unhomed state — Klipper has no reference. Not an error in hardware: a macro/print started without G28, or a prior error cleared homing state (any MCU shutdown unhomes).",
+          "common_causes": ["START_PRINT missing G28", "Error earlier in session cleared homing", "FORCE_MOVE expectations"],
+          "diagnostics": ["Check macro chain for G28; check log for a prior shutdown that dropped homing"],
+          "fixes": ["Home first; investigate why homing state was lost if unexpected"]
+        }
+      ]
+    },
+    "extrusion": {
+      "description": "Extruder safety/logic errors — klippy/kinematics/extruder.py",
+      "errors": [
+        {
+          "id": "extrude_below_min_temp",
+          "patterns": ["Extrude below minimum temp"],
+          "example": "Extrude below minimum temp",
+          "raised_in": "klippy/kinematics/extruder.py (min_extrude_temp check, default 170°C)",
+          "why": "An E-move was commanded while the extruder temperature is below min_extrude_temp — cold-extrusion protection. Either genuinely cold (heating skipped/failed) or the temperature never reached target before the macro extruded.",
+          "common_causes": ["Macro extrudes before M109 completes", "Sensor under-reading (wrong sensor_type)", "Testing without heating (use M302 consciously)"],
+          "diagnostics": ["Check reported temp at the moment of the error"],
+          "fixes": ["Fix macro sequencing; M302 P1 only for deliberate cold tests"]
+        },
+        {
+          "id": "extrude_cross_section",
+          "patterns": ["Move exceeds maximum extrusion"],
+          "example": "Move exceeds maximum extrusion (1.652mm^2 vs 0.640mm^2)",
+          "raised_in": "klippy/kinematics/extruder.py (max_extrude_cross_section check)",
+          "why": "One G1's extrusion volume implies a bead cross-section larger than max_extrude_cross_section (default 4×nozzle²). Klipper computes E-distance × filament area ÷ XY-distance; a huge ratio means the G-code/config disagree about geometry: wrong rotation_distance (Fracktal TD-01 ≈4.72!), slicer in 'volumetric'/wrong filament diameter, or a legitimate purge blob line.",
+          "common_causes": ["rotation_distance wrong after extruder swap", "filament_diameter mismatch (1.75 vs 2.85)", "Slicer wipe/purge with tiny XY move", "KAMP purge lines"],
+          "diagnostics": ["Numbers in the message: how far off? 2× = config; 100× = units problem", "Verify 100mm extrusion test measures 100mm"],
+          "fixes": ["Calibrate rotation_distance", "Fix slicer filament settings", "Raise max_extrude_cross_section only for known purge macros"]
+        },
+        {
+          "id": "extrude_only_too_long",
+          "patterns": ["Extrude only move too long"],
+          "example": "Extrude only move too long (120.0mm vs 50.0mm)",
+          "raised_in": "klippy/kinematics/extruder.py (max_extrude_only_distance, default 50mm)",
+          "why": "A pure E move (no XY) exceeded max_extrude_only_distance — guard against runaway load/unload commands. Filament-change macros routinely need more; raise the limit deliberately for those.",
+          "common_causes": ["LOAD/UNLOAD macros pushing bowden lengths", "Slicer retract on filament change"],
+          "diagnostics": ["Which macro issued it"],
+          "fixes": ["Set max_extrude_only_distance to the real load path length (e.g. 200 for long PTFE runs — Fracktal PTFE lengths in PRINTER_VARIABLES)"]
+        }
+      ]
+    },
+    "canbus": {
+      "description": "CAN bus toolhead errors — Fracktal RP2040 toolhead ↔ Manta bridge at 500kbps (can2040 software CAN)",
+      "errors": [
+        {
+          "id": "canbus_uuid_not_found",
+          "patterns": ["Unable to find canbus_uuid", "canbus_uuid"],
+          "example": "mcu 'toolhead': Unable to find canbus_uuid",
+          "raised_in": "klippy/serialhdl.py CAN path (node discovery query unanswered)",
+          "why": "Klipper broadcast a discovery for the configured UUID and the node never answered. The toolhead board is unpowered, its firmware crashed/not flashed, the UUID is wrong (placeholder XXXXXXXXXXX from Fracktal template!), or the bus itself is down (interface, wiring, termination, bitrate).",
+          "common_causes": [
+            "UUID placeholder never replaced after board swap (canbus_query.py to enumerate)",
+            "can0 interface down or wrong bitrate (must be 500000)",
+            "24V to toolhead board absent (harness connector)",
+            "Missing/double termination (need exactly two 120Ω, ~60Ω across CANH-CANL powered off)",
+            "Toolhead firmware needs reflash after Klipper update (Katapult/CAN bootloader)"
+          ],
+          "diagnostics": [
+            "ip -details link show can0 — UP? bitrate?",
+            "~/klippy-env/bin/python ~/klipper/scripts/canbus_query.py can0 (klipper service stopped)",
+            "Measure 60Ω CANH↔CANL (powered off); check toolhead power LED"
+          ],
+          "fixes": ["Set real UUID; bring up can0 at 500k; fix power/termination; reflash toolhead via Katapult"]
+        },
+        {
+          "id": "canbus_timeout",
+          "patterns": ["Timeout on canbus", "canbus read error", "Got error -1 in can read"],
+          "example": "Lost communication with MCU 'toolhead' (CAN)",
+          "raised_in": "klippy CAN transport / kernel SocketCAN",
+          "why": "Established CAN comms then dropped: error frames accumulated until bus-off, or the node reset. Physical-layer noise (unshielded harness along steppers), marginal transceiver supply, or bus overload (ADXL345 streaming saturating 500kbps + motion traffic).",
+          "common_causes": ["Error counter growth → bus-off (check ip -s -d)", "ADXL345 resonance testing while printing", "Harness fatigue at drag chain", "Ground offset between board grounds"],
+          "diagnostics": ["ip -s -d link show can0 — error counters, bus-off count", "candump can0 for error frames", "Correlate drop with motion/probe events"],
+          "fixes": ["Twisted-pair CANH/CANL, proper shield landing", "Do resonance tests while idle", "txqueuelen 1024 for can0"]
+        }
+      ]
+    },
+    "config_startup": {
+      "description": "Klippy configuration and startup errors — klippy/configfile.py, klippy.py",
+      "errors": [
+        {
+          "id": "config_option_error",
+          "patterns": ["Option '", "must be specified", "Unknown config object"],
+          "example": "Option 'sensor_type' in section 'extruder' must be specified",
+          "raised_in": "klippy/configfile.py (required-option validation at startup)",
+          "why": "printer.cfg parsing failed validation — a required option is missing, a section name is unknown (typo or module not in this Klipper version/fork), or an include pulled the wrong file set. Klipper stays in 'error' state until config is fixed + RESTART.",
+          "common_causes": ["Typo/missing option after manual edit", "Fracktal: wrong PRINTER_*.cfg include combination (two printers uncommented, or toolhead1 on a single-extruder)", "Module exists upstream but not in the installed fork (klipper_IDEX vs mainline)"],
+          "diagnostics": ["Read the exact section/option in the message", "firmware_analyzer.py --check all", "remote_config_editor.py --validate before applying"],
+          "fixes": ["Fix the named option; verify include hierarchy per Fracktal conventions (ONE printer, matching toolheads)"]
+        },
+        {
+          "id": "save_config_conflict",
+          "patterns": ["SAVE_CONFIG section conflicts", "Existing printer config file"],
+          "example": "SAVE_CONFIG section conflicts with included file",
+          "raised_in": "klippy/configfile.py (SAVE_CONFIG block management)",
+          "why": "The auto-generated SAVE_CONFIG block at the bottom of printer.cfg defines values (e.g. z_offset, PID, mesh) that also exist in an included file — Klipper refuses ambiguous duplicates. Common after moving configs between machines or editing included files directly (against Fracktal conventions).",
+          "common_causes": ["Manual edits duplicating saved values", "Copied printer.cfg with stale SAVE_CONFIG block"],
+          "diagnostics": ["Compare SAVE_CONFIG block against the named section"],
+          "fixes": ["Delete the duplicated entry from ONE location (prefer keeping SAVE_CONFIG), RESTART"]
+        },
+        {
+          "id": "klipper_state_shutdown",
+          "patterns": ["Klipper state: shutdown", "Once the underlying issue is corrected"],
+          "example": "Once the underlying issue is corrected, use the 'FIRMWARE_RESTART' command",
+          "raised_in": "klippy/klippy.py (post-shutdown notice)",
+          "why": "Not itself an error — the banner shown AFTER any shutdown. The cause is the message directly above it in klippy.log. FIRMWARE_RESTART re-establishes MCU comms; RESTART alone won't clear MCU-level shutdowns.",
+          "common_causes": ["See the preceding error"],
+          "diagnostics": ["klipper_log_parser.py — extract the shutdown reason above this banner"],
+          "fixes": ["Fix root cause, then FIRMWARE_RESTART"]
+        }
+      ]
+    }
+  }
+}

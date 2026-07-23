@@ -1,0 +1,308 @@
+{
+  "_meta": {
+    "description": "Comprehensive Klipper peripherals compatibility reference — every common motor driver, temperature sensor, hotend, heater, probe, extruder, accelerometer, filament sensor, endstop, fan, and CAN toolhead board Klipper supports, with config sections, key options, constraints, and the combination rules that govern which permutations work together. Queried via peripheral_lookup.py; ingested into the Graphify knowledge graph.",
+    "usage": "Values marked ≈ are typical/community-cited — always calibrate on the physical machine (current, rotation_distance, z_offset).",
+    "version": "1.0.0"
+  },
+  "categories": {
+    "motor_drivers": {
+      "description": "Stepper drivers — interface, current limits, features, and which Klipper config section drives them",
+      "entries": [
+        {
+          "name": "TMC2209",
+          "klipper_config": "[tmc2209 stepper_x] uart_pin: ... run_current: 0.8",
+          "interface": "UART (single-wire PDN_UART; uart_address 0-3 via MS1/MS2)",
+          "current": "≈1.2A RMS practical on stick modules with cooling (2.0A RMS silicon max)",
+          "features": ["stealthChop2", "spreadCycle", "StallGuard4 → sensorless homing (diag_pin)", "CoolStep"],
+          "key_options": ["run_current", "stealthchop_threshold (0=spreadCycle always)", "diag_pin + driver_SGTHRS (sensorless)", "sense_resistor (0.110 typical)", "interpolate"],
+          "notes": "Fracktal standard for extruders at 0.85A. StallGuard4 works in stealthChop only — sensorless homing needs stealthchop active during homing.",
+          "common_issues": ["'Unable to read tmc uart ... IFCNT' — wiring/address/VM missing", "uart_address collision on shared UART", "false stalls when SGTHRS too high"]
+        },
+        {
+          "name": "TMC2208 / TMC2224",
+          "klipper_config": "[tmc2208 stepper_x] uart_pin: ...",
+          "interface": "UART (write-limited variant of 2209 family)",
+          "current": "≈1.0-1.2A RMS with cooling",
+          "features": ["stealthChop2", "spreadCycle"],
+          "key_options": ["run_current", "stealthchop_threshold", "sense_resistor"],
+          "notes": "NO StallGuard — sensorless homing impossible; physical endstops required.",
+          "common_issues": ["bought as '2209 clone' but lacks diag → sensorless config fails"]
+        },
+        {
+          "name": "TMC2130",
+          "klipper_config": "[tmc2130 stepper_x] cs_pin: ... spi_bus: ...",
+          "interface": "SPI (4-wire + CS per driver)",
+          "current": "≈1.2A RMS with cooling",
+          "features": ["stealthChop", "spreadCycle", "StallGuard2 → sensorless (diag1_pin, driver_SGT -64..63)"],
+          "key_options": ["cs_pin", "run_current", "driver_SGT", "diag1_pin"],
+          "notes": "Older SPI generation; SGT is signed two's complement (vs SGTHRS 0-255 on 2209).",
+          "common_issues": ["'Unable to read tmc spi ... GSTAT' — CS/MISO wiring or VM missing"]
+        },
+        {
+          "name": "TMC2240",
+          "klipper_config": "[tmc2240 stepper_x] cs_pin: ... (SPI) or uart_pin (UART)",
+          "interface": "SPI or UART",
+          "current": "≈2.0A RMS class, integrated MOSFETs",
+          "features": ["stealthChop2", "spreadCycle", "StallGuard4", "on-die temperature ADC (readable via DUMP_TMC)", "8-point current scaling"],
+          "key_options": ["run_current", "diag0_pin/diag1_pin", "driver_SGT"],
+          "notes": "Reports its own temperature — use it to confirm overtemp hypotheses without an IR gun.",
+          "common_issues": ["mixed SPI/UART strapping on some boards — match the board's mode"]
+        },
+        {
+          "name": "TMC5160 / TMC5161",
+          "klipper_config": "[tmc5160 stepper_x] cs_pin: ... spi_bus: ...",
+          "interface": "SPI",
+          "current": "external MOSFETs — 3A+ RMS (module-dependent); HV variants to 48-60V",
+          "features": ["stealthChop2", "spreadCycle", "StallGuard2", "high current for large motors"],
+          "key_options": ["run_current", "sense_resistor (module-specific, e.g. 0.075/0.022!)", "driver_SGT", "diag1_pin"],
+          "notes": "Fracktal standard for X/Y/Z at 1.2A (SPI). WRONG sense_resistor silently mis-scales current — check the module datasheet.",
+          "common_issues": ["uv_cp undervoltage when VM sags", "s2ga/s2gb from harness shorts", "wrong sense_resistor → motors weak or overheating"]
+        },
+        {
+          "name": "A4988 / DRV8825 / LV8729 (dumb step-dir)",
+          "klipper_config": "plain [stepper_x] step_pin/dir_pin/enable_pin — NO tmc section",
+          "interface": "STEP/DIR only; current via onboard Vref potentiometer; microsteps via jumpers",
+          "current": "A4988 ≈1A, DRV8825 ≈1.5A with cooling",
+          "features": ["none — no runtime config, no diagnostics, no sensorless"],
+          "key_options": ["microsteps in [stepper_*] MUST match the board jumper setting"],
+          "notes": "No error reporting at all — driver problems appear only as motion symptoms (skipping, noise).",
+          "common_issues": ["microstep jumper/config mismatch → wrong travel distances", "DRV8825 fixed-decay artifacts at low speed"]
+        },
+        {
+          "name": "External drivers (TB6600, DM542, servo drives)",
+          "klipper_config": "[stepper_x] with step/dir through level shifter; step_pulse_duration may need increase",
+          "interface": "STEP/DIR (optocoupled, often 5V logic)",
+          "current": "2-8A — large NEMA23/24 motors",
+          "features": ["set step_pulse_duration: 0.000002-0.000005 for optocoupler rise times"],
+          "notes": "Common on large-format machines. 3.3V MCU outputs may need 5V buffering for reliable opto drive.",
+          "common_issues": ["missed steps from too-short step pulses", "direction inversion needs dir_pin: !"]
+        }
+      ]
+    },
+    "temperature_sensors": {
+      "description": "Temperature sensors — Klipper sensor_type strings, wiring/amplifier requirements, usable ranges",
+      "entries": [
+        {
+          "name": "EPCOS 100K B57560G104F",
+          "klipper_config": "sensor_type: EPCOS 100K B57560G104F",
+          "range": "-40 to ≈300°C",
+          "wiring": "2-wire NTC to ADC pin, board pullup (4.7kΩ typical)",
+          "notes": "FRACKTAL STANDARD thermistor. ≈100kΩ at 25°C — verify with a meter when diagnosing ADC errors.",
+          "common_issues": ["wrong sensor_type configured after hotend swap → temps off by 10-30°C"]
+        },
+        {
+          "name": "ATC Semitec 104GT-2 / 104NT-4-R025H42G",
+          "klipper_config": "sensor_type: ATC Semitec 104GT-2 (V6 etc.) | ATC Semitec 104NT-4-R025H42G (E3D Revo)",
+          "range": "to ≈300°C",
+          "wiring": "2-wire NTC, 4.7kΩ pullup",
+          "notes": "104GT-2 ships in most E3D V6-class hotends; 104NT-4 is the Revo cartridge sensor.",
+          "common_issues": ["104GT vs 104NT mixup after Revo upgrade — small but real temp error"]
+        },
+        {
+          "name": "Generic 3950",
+          "klipper_config": "sensor_type: Generic 3950",
+          "range": "to ≈280°C",
+          "wiring": "2-wire NTC, 4.7kΩ pullup",
+          "notes": "The catch-all for unbranded/Creality-style thermistors and most bed thermistors.",
+          "common_issues": ["cheap variants drift; if temps look wrong try EPCOS/Semitec curves"]
+        },
+        {
+          "name": "PT1000 (direct analog)",
+          "klipper_config": "sensor_type: PT1000  [+ pullup_resistor: 4700 (or board-specific 2200/1000)]",
+          "range": "-200 to 500°C (sensor); practical limit = hotend",
+          "wiring": "2-wire RTD straight to thermistor ADC input",
+          "notes": "The simplest >300°C option — no amplifier board. Resolution below ≈150°C is coarser than NTC on a 4.7k pullup; boards with dedicated PT1000 pullups (2.2k/1k) improve it — set pullup_resistor to match.",
+          "common_issues": ["forgot pullup_resistor when board isn't 4.7k → temps wildly wrong", "PT100 wired where PT1000 expected reads ≈ -240°C"]
+        },
+        {
+          "name": "PT100 (MAX31865 amplifier)",
+          "klipper_config": "sensor_type: MAX31865, sensor_pin: <cs>, spi_bus..., rtd_nominal_r: 100, rtd_reference_r: 430, rtd_num_of_wires: 2|3|4",
+          "range": "-200 to 500°C",
+          "wiring": "RTD → MAX31865 board → SPI",
+          "notes": "PT1000 also works on MAX31865 with rtd_nominal_r: 1000, rtd_reference_r: 4300. 3/4-wire modes cancel lead resistance for long toolhead runs.",
+          "common_issues": ["'Thermocouple reader fault'-style faults from SPI wiring", "wrong rtd_reference_r for the specific breakout (430 Adafruit, 400 some clones)"]
+        },
+        {
+          "name": "Thermocouple K (MAX31856 / MAX31855 / MAX6675 / AD8495)",
+          "klipper_config": "sensor_type: MAX31856 (preferred) | MAX31855 | MAX6675 | AD8495 (analog amp)",
+          "range": "to 1000°C+ (sensor); use for >300°C hotends",
+          "wiring": "TC → SPI amplifier board; AD8495 outputs analog to ADC pin",
+          "notes": "MAX31856 has on-chip filtering + fault detection — preferred for noisy environments. Thermocouples are EMI-sensitive: route away from steppers, ground the sheath at ONE end only.",
+          "common_issues": ["reversed TC polarity reads inverted deltas", "EMI spikes trigger max_temp shutdowns mid-print"]
+        },
+        {
+          "name": "SliceEngineering 450 / TDK NTCG104LH104JT1",
+          "klipper_config": "sensor_type: SliceEngineering 450 | TDK NTCG104LH104JT1",
+          "range": "Slice: to 450°C (Mosquito high-temp kit)",
+          "wiring": "2-wire NTC, 4.7kΩ pullup",
+          "notes": "High-temp NTCs — the non-RTD path to >300°C printing.",
+          "common_issues": ["using a standard 3950 curve for these reads dangerously low at temp"]
+        },
+        {
+          "name": "Ambient/chamber sensors (BME280, SHT3X, AHT10, HTU21D, DS18B20)",
+          "klipper_config": "[temperature_sensor chamber] sensor_type: BME280, i2c_address... | DS18B20 (serial_no, Pi host mcu ONLY)",
+          "range": "ambient/chamber (≤85-125°C)",
+          "wiring": "I2C (BME/SHT/AHT/HTU) on mcu or host; DS18B20 is 1-Wire on the Pi host mcu only",
+          "notes": "Chamber temp usually pairs with [temperature_fan] for exhaust control. NEVER heater feedback sensors — use a proper NTC for [heater_generic] chamber heaters.",
+          "common_issues": ["DS18B20 configured on a non-host MCU → config error", "I2C address mismatch"]
+        },
+        {
+          "name": "Virtual sensors (temperature_mcu, temperature_host, temperature_combined)",
+          "klipper_config": "[temperature_sensor mcu] sensor_type: temperature_mcu | temperature_host",
+          "range": "n/a",
+          "notes": "Free diagnostics: MCU die temp and Pi temp on every dashboard — great early warning for enclosure heat soak (correlates with Timer too close and TMC ot).",
+          "common_issues": []
+        }
+      ]
+    },
+    "hotends": {
+      "description": "Hotend families — max temps, stock sensors, heater pairings",
+      "entries": [
+        {"name": "E3D V6 (PTFE-lined)", "max_temp": "≈245°C (PTFE degrades above)", "stock_sensor": "ATC Semitec 104GT-2", "heater": "30/40W cartridge", "notes": "Classic bowden/direct workhorse. Lined version must stay ≤245°C."},
+        {"name": "E3D V6 (all-metal) / Volcano / SuperVolcano", "max_temp": "285-300°C", "stock_sensor": "ATC Semitec 104GT-2", "heater": "40W (V6) / 60-80W (Volcano class)", "notes": "Volcano needs raised verify_heater expectations at high flow; SuperVolcano borders PT1000 territory."},
+        {"name": "E3D Revo (Micro/Six/Voron/High Flow)", "max_temp": "300°C", "stock_sensor": "ATC Semitec 104NT-4-R025H42G", "heater": "40W or 60W HeaterCore (integrated)", "notes": "Nozzle+heatbreak are one RapidChange unit; HeaterCore resistance differs from cartridges — don't diagnose by 40W-cartridge resistance tables."},
+        {"name": "Phaetus Dragon SF/HF & Dragonfly", "max_temp": "bodies rated ≈450°C — sensor limits apply", "stock_sensor": "104GT-2 (≤300°C); fit PT1000/thermocouple for more", "heater": "40-70W cartridge", "notes": "HF variant for flow; going >300°C requires swapping to RTD/TC and often a plated/hardened nozzle."},
+        {"name": "Phaetus Rapido / Rapido 2 (UHF)", "max_temp": "≈350°C", "stock_sensor": "104NT-4 class NTC", "heater": "high-watt ceramic core (integrated)", "notes": "Ceramic cores heat FAST — verify_heater rarely trips; overshoot means PID retune."},
+        {"name": "Slice Mosquito / Magnum", "max_temp": "up to 450°C with high-temp kit", "stock_sensor": "SliceEngineering 450 (kit) or 104GT-2", "heater": "50W standard", "notes": "One-hand nozzle change; >300°C needs the 450 thermistor + matching sensor_type."},
+        {"name": "Bambu-style / ceramic-core hotends", "max_temp": "300°C", "stock_sensor": "integrated NTC (Generic 3950 curve usually close)", "heater": "48W ceramic integrated", "notes": "Integrated assemblies — replace as a unit; sensor curve may need empirical pick."},
+        {"name": "Creality stock (MK8/Sprite/Spider)", "max_temp": "≈250°C (260 Spider)", "stock_sensor": "Generic 3950 / NTC 100K MGB18", "heater": "40W cartridge", "notes": "MGB18 (glass bead) is the enclosed-capsule Creality sensor — different curve from bare 3950."},
+        {"name": "Fracktal TD-01 toolhead", "max_temp": "per Fracktal spec", "stock_sensor": "EPCOS 100K B57560G104F", "heater": "cartridge per BOM", "notes": "Direct-drive, rotation_distance ≈4.72, ADXL345 on toolhead RP2040 CAN board. Config lives in TOOLHEADS_TD-01_TOOLHEAD*.cfg — never edit inline."}
+      ]
+    },
+    "heaters": {
+      "description": "Heater types — resistance sanity checks, drive electronics, watchdog implications",
+      "entries": [
+        {
+          "name": "Cartridge heaters (12/24V, 30-80W)",
+          "klipper_config": "[extruder] heater_pin: ... (board MOSFET)",
+          "sanity_check": "R = V²/P → 24V: 40W≈14.4Ω, 50W≈11.5Ω, 60W≈9.6Ω, 80W≈7.2Ω; 12V 40W≈3.6Ω",
+          "notes": "Resistance far off table = failing heater or wrong-voltage part (12V cartridge on 24V = 4× power = burnout/fire risk; 24V on 12V = ¼ power → 'not heating at expected rate').",
+          "common_issues": ["12/24V mixups after repair", "crimped-not-soldered joints heating and dropping power"]
+        },
+        {
+          "name": "Ceramic core heaters (Rapido/Bambu/Revo HeaterCore style)",
+          "klipper_config": "same heater_pin drive",
+          "sanity_check": "resistance per vendor spec — NOT the cartridge table",
+          "notes": "Very low thermal mass — fast heat, fast overshoot. PID_CALIBRATE mandatory after install; expect small PID constants.",
+          "common_issues": ["max_temp overshoot trips right after install (old PID values)"]
+        },
+        {
+          "name": "DC heated bed (MOSFET-driven, ≤~500W)",
+          "klipper_config": "[heater_bed] heater_pin, sensor_type (Generic 3950 typical), max_power",
+          "notes": "High current — check board bed MOSFET rating and connector heating; external MOSFET module offloads marginal boards. Long check_gain_time (60s default) fits slow beds.",
+          "common_issues": ["burnt bed connectors (XT60/screw terminals)", "verify_heater trips on very large slow beds → raise check_gain_time deliberately"]
+        },
+        {
+          "name": "AC heated bed (mains + SSR)",
+          "klipper_config": "[heater_bed] heater_pin: <SSR gate pin>",
+          "notes": "MANDATORY: thermal fuse/cutoff in series and proper earth bonding — a shorted SSR drives the bed unconditionally and firmware cannot stop it. Zero-cross SSR preferred. Fast heating: shorten check_gain_time upward rarely needed.",
+          "common_issues": ["SSR fails SHORTED (thermal runaway only the fuse stops)", "SSR DC-side polarity reversed → never turns on"]
+        },
+        {
+          "name": "Chamber heaters (PTC / finned + fan)",
+          "klipper_config": "[heater_generic chamber_heater] + [verify_heater chamber_heater] with relaxed check_gain_time + [temperature_fan] circulation",
+          "notes": "Chambers heat SLOWLY — verify_heater defaults WILL trip; set check_gain_time 120-300s and heating_gain low. PTC elements self-limit but still need overtemp cutoffs.",
+          "common_issues": ["default watchdog kills chamber heat mid-soak", "sensor placed in dead air reads low → overheat elsewhere"]
+        }
+      ]
+    },
+    "probes": {
+      "description": "Z probes and bed-leveling sensors",
+      "entries": [
+        {"name": "BLTouch / CR-Touch / 3DTouch", "klipper_config": "[bltouch] sensor_pin: ^..., control_pin: ..., z_offset", "notes": "Servo-style control + hall output. Clones vary: try probe_with_touch_mode: True and pin_up_touch_mode_reports_triggered: False for misbehaving clones. 5V device — signal is open-drain, safe on 3.3V inputs with pullup (^).", "common_issues": ["'Failed to verify sensor state' — wiring order (brown/red/orange vs black/white)", "pin fouled with plastic → 'Probe triggered prior to movement'", "cable-chain fatigue breaks the 5-wire run"]},
+        {"name": "Inductive NPN (PL-08N / LJ12A3 / SN04)", "klipper_config": "[probe] pin: !^... (NC preferred)", "notes": "Senses METAL beds only (through PEI is fine, through glass is not). 6-36V sensors: output needs divider/optocoupler on non-tolerant inputs; NPN-NO wants pin: ^, NC wants !^. Thermal drift: offset changes with bed temp.", "common_issues": ["works cold, fails hot (thermal drift)", "doesn't trigger over spring steel edges/cutouts"]},
+        {"name": "Klicky / Euclid / dockable microswitch", "klipper_config": "[probe] pin: ^... + dock/undock gcode macros", "notes": "Physical microswitch accuracy with no drift. All the failure modes are macro logic — dock position after Z tilt, homing overrides.", "common_issues": ["probe not attached when PROBE runs → 'No trigger after full movement'", "magnet weakening → mid-mesh detach"]},
+        {"name": "Eddy current (BTT Eddy, Cartographer, Beacon)", "klipper_config": "vendor module or [probe_eddy_current] (BTT Eddy, mainline); USB or CAN attach", "notes": "Contactless, very fast full-bed scans, needs metal bed. Calibrate against nozzle touch; temperature compensation matters — run the vendor calibration.", "common_issues": ["coil too far above bed (mount height spec)", "confusion between scan mode and touch mode z_offsets"]},
+        {"name": "Load cell / nozzle-touch (Prusa-style, Voron TAP)", "klipper_config": "TAP: [probe] on toolhead switch/optical; load_cell support in newer Klipper", "notes": "Probes with the NOZZLE — zero thermal offset between probe and tip. TAP needs clean nozzle (probe hot but not oozing, e.g. 150°C).", "common_issues": ["filament blob on nozzle = first-layer offset", "TAP optical board voltage (5V vs 24V versions)"]},
+        {"name": "Smart Effector (delta piezo)", "klipper_config": "[probe] pin per effector docs", "notes": "Delta-specific nozzle-contact sensing built into the effector PCB.", "common_issues": ["sensitivity pot mis-set → double triggers or misses"]}
+      ]
+    },
+    "extruders": {
+      "description": "Extruder mechanics — gear ratios and rotation_distance starting points (ALWAYS calibrate with a 100mm extrusion test)",
+      "entries": [
+        {"name": "Direct MK8-style (no gearing)", "rotation_distance": "≈33.5 (7mm hob)", "gear_ratio": "none", "notes": "Creality-class stock extruders."},
+        {"name": "BMG / dual-drive clones", "rotation_distance": "≈22.679", "gear_ratio": "50:17", "notes": "The most common geared standard; 3:1."},
+        {"name": "Orbiter 2.0", "rotation_distance": "≈4.637", "gear_ratio": "built-in (7.5:1)", "notes": "rotation_distance already folds in the ratio — no separate gear_ratio line."},
+        {"name": "Sherpa Mini", "rotation_distance": "≈22.679", "gear_ratio": "50:8", "notes": "5:1 with BMG-style hobs."},
+        {"name": "Galileo 2", "rotation_distance": "≈47.088", "gear_ratio": "9:1", "notes": "Planetary; check vendor value per version."},
+        {"name": "LGX / LGX Lite", "rotation_distance": "≈5.7 (Lite ≈5.66)", "gear_ratio": "built-in", "notes": "Bondtech spec sheet value, then calibrate."},
+        {"name": "Fracktal TD-01 direct drive", "rotation_distance": "≈4.72", "gear_ratio": "built-in", "notes": "Fracktal production value — deviations >5% after calibration indicate mechanical trouble (worn gears, debris)."},
+        {"name": "Bowden variants", "rotation_distance": "same as the cold-end mechanism", "notes": "Long PTFE adds pressure-advance (0.4-1.0 typical vs 0.02-0.06 direct) and needs max_extrude_only_distance raised to the tube length for load/unload macros."}
+      ]
+    },
+    "accelerometers": {
+      "description": "Input-shaper measurement sensors",
+      "entries": [
+        {"name": "ADXL345", "klipper_config": "[adxl345] cs_pin... spi_bus... + [resonance_tester]", "interface": "SPI", "notes": "The standard. axes_map corrects mounting orientation. On CAN toolheads it's usually on the toolhead MCU — measure while IDLE, streaming saturates 500kbps CAN.", "common_issues": ["'Invalid adxl345 id' — SPI wiring/CS or 5V-only clone module on 3.3V", "loose mount → garbage resonance peaks"]},
+        {"name": "LIS2DW / LIS3DH", "klipper_config": "[lis2dw] / [lis3dh] cs_pin...", "interface": "SPI/I2C", "notes": "Common on newer toolhead boards (some Fysetc/BTT); LIS2DW slightly cleaner data than LIS3DH.", "common_issues": ["picking the wrong section name for the chip actually fitted"]},
+        {"name": "MPU-6050 / MPU-9250", "klipper_config": "[mpu9250] i2c_mcu... i2c_bus...", "interface": "I2C (needs 400kHz)", "notes": "Cheap Pi-attached option; I2C bandwidth is marginal — SPI chips preferred.", "common_issues": ["i2c clock too low → sample overruns"]},
+        {"name": "Integrated (Beacon/Cartographer/EBB boards)", "klipper_config": "vendor-provided or onboard [adxl345]", "notes": "Probe+accelerometer combos reduce toolhead wiring to one cable.", "common_issues": []}
+      ]
+    },
+    "filament_sensors": {
+      "description": "Runout / jam / motion detection",
+      "entries": [
+        {"name": "Microswitch runout", "klipper_config": "[filament_switch_sensor] switch_pin: ^..., runout_gcode: PAUSE", "notes": "Simple presence detect — cannot see jams or grinding.", "common_issues": ["pause fires during unload macros — gate with SET_FILAMENT_SENSOR ENABLE=0"]},
+        {"name": "Motion/encoder (BTT SFS 2.0, encoder wheels)", "klipper_config": "[filament_motion_sensor] switch_pin, detection_length: 7-15", "notes": "Detects jams AND runout by expecting movement pulses while extruding. detection_length too short = false pauses on slow perimeters.", "common_issues": ["false triggers during long travels/retracts", "detection_length tuning per print speed profile"]},
+        {"name": "Fracktal T0/T1 runout + jam modules", "klipper_config": "T0_FILAMENT_RUNOUT_SENSOR.cfg / T0_FILAMENT_JAM_SENSOR.cfg includes", "notes": "Enable by uncommenting the include — never edit the module files. Dual-extruder machines have per-tool sensors.", "common_issues": ["include enabled for a sensor not physically fitted → phantom pauses"]}
+      ]
+    },
+    "endstops": {
+      "description": "Homing switch options",
+      "entries": [
+        {"name": "Mechanical microswitch", "klipper_config": "endstop_pin: ^!PIN (NC recommended)", "notes": "NC wiring fails SAFE (broken wire = 'triggered', machine refuses to move rather than crashing).", "common_issues": ["NO wiring hides broken cables until a crash", "chatter near trigger point → 'still triggered after retract'"]},
+        {"name": "Optical", "klipper_config": "endstop_pin: ^PIN (polarity per board)", "notes": "No contact bounce, repeatable; dust/ambient IR sensitivity.", "common_issues": ["flag alignment drift", "enclosure lighting interference"]},
+        {"name": "Hall effect + magnet", "klipper_config": "endstop_pin per module", "notes": "Non-contact, adjustable trigger distance via magnet position.", "common_issues": ["temperature sensitivity of trigger point"]},
+        {"name": "Sensorless (StallGuard virtual endstop)", "klipper_config": "endstop_pin: tmc2209_stepper_x:virtual_endstop + diag_pin + homing_retract_dist: 0", "notes": "Requires TMC2209/2130/5160/2240 with diag wired. Tune SGTHRS/SGT at the REAL homing speed and current; re-tune after changing either. Not valid on 2208/A4988.", "common_issues": ["instant-trigger (too sensitive) vs grinding (too insensitive)", "works cold, fails when drivers warm"]}
+      ]
+    },
+    "fans": {
+      "description": "Fan roles and config sections",
+      "entries": [
+        {"name": "Part cooling", "klipper_config": "[fan] pin: ...", "notes": "M106/M107 controlled. High part-cooling airflow can trip verify_heater on marginal hotends — silicone sock."},
+        {"name": "Hotend heatbreak fan", "klipper_config": "[heater_fan hotend_fan] heater: extruder, heater_temp: 50", "notes": "MUST be [heater_fan] so it runs whenever hot — a stopped heatbreak fan = instant clog (heat creep)."},
+        {"name": "Controller/driver fan", "klipper_config": "[controller_fan] associated with steppers/drivers", "notes": "Runs when steppers active — the defense against TMC ot/otpw in enclosed bays."},
+        {"name": "Chamber/exhaust", "klipper_config": "[temperature_fan chamber] sensor + target", "notes": "Thermostatic; pairs with BME280/NTC chamber sensors."},
+        {"name": "Generic switchable", "klipper_config": "[fan_generic] + SET_FAN_SPEED", "notes": "Aux blowers, filters (Nevermore)."},
+        {"name": "4-wire PWM / tacho fans", "klipper_config": "tachometer_pin: ^..., cycle_time: 0.00004 (25kHz) for true 4-wire PWM", "notes": "Tach enables fan-failure detection; 2-wire fans on PWM pins prefer default ~100Hz cycle_time.", "common_issues": ["24V fan on 12V header (slow) or reverse (dead)", "PWM whine → adjust cycle_time"]}
+      ]
+    },
+    "can_toolhead_boards": {
+      "description": "CAN bus toolhead MCUs — consolidate hotend wiring to 4 wires (24V, GND, CANH, CANL)",
+      "entries": [
+        {"name": "Fracktal RP2040 toolhead board", "notes": "can2040 software CAN at 500kbps to the Manta's USB-CAN bridge. Carries: extruder heater/thermistor (EPCOS 100K), part+heatbreak fans, ADXL345, probe input, filament sensor inputs. Firmware via Katapult; MUST be reflashed on every Klipper host update.", "common_issues": ["'Unable to find canbus_uuid' — placeholder UUID, power, termination", "firmware version skew after host update"]},
+        {"name": "BTT EBB36 / EBB42", "notes": "STM32G0B1 CAN toolhead; onboard ADXL345 footprint, MAX31865 option on some revisions.", "common_issues": ["120Ω termination jumper forgotten", "VBUS/CAN transceiver jumper settings"]},
+        {"name": "Mellow Fly SHT36 / SHT42", "notes": "RP2040 or STM32 variants; similar peripheral set.", "common_issues": ["bitrate mismatch vs host can0"]},
+        {"name": "USB toolhead boards (Beacon, Cartographer USB, EBB USB mode)", "notes": "Same consolidation over USB instead of CAN — no termination concerns, but cable-chain-rated USB required.", "common_issues": ["USB dropouts from unshielded cable runs along steppers"]}
+      ]
+    },
+    "displays_leds": {
+      "description": "UI hardware (deep diagnostics: display_diagnostics.py)",
+      "entries": [
+        {"name": "Character/graphic LCDs (12864, ST7920, UC1701)", "klipper_config": "[display] per board docs", "notes": "MCU-driven classic displays; menu system in Klipper."},
+        {"name": "HDMI/DSI/SPI touchscreens + KlipperScreen", "klipper_config": "not in printer.cfg — OS level (config.txt overlays) + KlipperScreen service", "notes": "Debug with display_diagnostics.py; Fracktal ships ControlCenter PyQt5 UI instead on production machines."},
+        {"name": "Neopixel/Dotstar LEDs", "klipper_config": "[neopixel my_led] pin, chain_count, color_order + SET_LED", "notes": "Long chains on the motion MCU add scheduling load — prefer host/toolhead pins; keep chains short on AVR."}
+      ]
+    },
+    "combination_rules": {
+      "description": "Cross-cutting rules for valid peripheral permutations — check these when ANY combination question arises",
+      "entries": [
+        {"rule": "temp_range_matching", "statement": "Sensor must cover hotend target: NTC 100K family ≤300°C; 300-350°C → high-temp NTC (Slice 450) or PT1000; >350°C → PT1000/PT100+MAX31865 or thermocouple+MAX31856. sensor_type MUST match the physical sensor exactly — a wrong curve reads plausibly but lies."},
+        {"rule": "sensorless_requires_stallguard", "statement": "Sensorless homing valid ONLY with TMC2209 (SGTHRS), TMC2130/5160 (SGT), TMC2240 — diag pin wired to MCU. TMC2208/2224 and step-dir drivers (A4988/DRV8825/externals) cannot do it: fit physical endstops."},
+        {"rule": "driver_current_motor_matching", "statement": "run_current ≈ 70-85% of motor rated current (RMS). Driver thermal budget gates it: stick drivers ≈1.2A sustained with airflow; >1.5A wants TMC5160/2240 or external drivers. Undercurrent = skipped steps/false stalls; overcurrent = ot/otpw shutdowns and hot motors (>80°C damages winding insulation)."},
+        {"rule": "can_bandwidth_budget", "statement": "On 500kbps CAN toolheads: motion + heater + sensor traffic is fine, but ADXL345 streaming saturates the bus — run resonance tests while idle, never mid-print. Probing over CAN uses multi-MCU homing (TRSYNC): keep bus healthy (error counters ≈0) or probe results get 'Communication timeout during homing probe'."},
+        {"rule": "heater_power_watchdog", "statement": "verify_heater expectations scale with heater power vs thermal mass: big beds and chambers need raised check_gain_time (bed 60-120s, chamber 120-300s); powerful ceramic cores rarely trip but overshoot — always PID_CALIBRATE after ANY heater/sensor/fan change, at working conditions (hotend: part fan at typical speed)."},
+        {"rule": "voltage_domain_matching", "statement": "Every peripheral must match its supply domain: 12V fans die on 24V; 12V heaters on 24V quadruple power (fire risk); BLTouch is 5V-powered with 3.3V-safe open-drain signal; inductive probes at 12-24V need divider/opto to logic inputs; 5V-only ADXL345 clone boards fail on 3.3V SPI."},
+        {"rule": "multi_extruder_permutations", "statement": "Each extruder needs its own heater+sensor ([extruder], [extruder1] — no shared ADC pins). IDEX (TwinDragon) uses [dual_carriage] with per-tool offsets; single-carriage 2-in-1-out uses [extruder_stepper] synced to one [extruder]. Never include TOOLHEAD1 configs on single-extruder machines — instant config/MCU errors (Fracktal rule)."},
+        {"rule": "probe_offset_geometry", "statement": "Probe x_offset/y_offset must keep the PROBE (not nozzle) inside the bed for every mesh point — mesh min/max are probe coordinates. Nozzle-contact probes (TAP, load cell, Smart Effector) have zero XY offset and no thermal drift; inductive probes drift with temperature — set z_offset at working temps."},
+        {"rule": "host_only_sensors", "statement": "DS18B20 works ONLY on the Linux host mcu (Pi 1-Wire). I2C sensors (BME280 etc.) can sit on host or any MCU with exposed I2C. Nothing safety-critical (heater feedback) may run through host-only sensors — host lag ≠ firmware watchdog timing."},
+        {"rule": "microstep_mcu_load", "statement": "Total step rate = Σ(steps/mm × velocity × microsteps). 256 µsteps on multiple axes overruns MCUs ('Timer too close'); run 16-32 µsteps with interpolate: True — same smoothness, 1/8th the load. 8-bit AVR boards cap far lower than STM32/RP2040."},
+        {"rule": "pullup_resistor_matching", "statement": "Thermistor inputs assume the board pullup (4.7kΩ default). PT1000 direct on 4.7k works but is coarse at low temp; boards with 2.2k/1k PT1000 positions need pullup_resistor: set accordingly. Wrong pullup = smoothly wrong temperatures that PID happily controls to the wrong real temp."},
+        {"rule": "ac_bed_safety_chain", "statement": "AC bed permutation is ONLY valid as: SSR (zero-cross) + serial thermal fuse + earth-bonded plate + [heater_bed] max ~everything. A shorted SSR is firmware-invisible — the fuse is the last line. DC beds >250W want external MOSFET modules and proper connectors (no bare screw terminals on moving harnesses)."},
+        {"rule": "fan_role_sections", "statement": "Heatbreak fan MUST be [heater_fan] (auto-on with heat) — wiring it as [fan] means one forgotten M106 clogs the hotend. Driver-bay fans as [controller_fan]. Never share one pin between roles unless truly identical policy."},
+        {"rule": "idex_input_shaper", "statement": "IDEX/multi-toolhead machines need per-toolhead resonance data: one [adxl345] per toolhead (Fracktal: on each RP2040), SHAPER_CALIBRATE per carriage; T0 and T1 can carry different shaper configs."},
+        {"rule": "firmware_version_lockstep", "statement": "Any permutation of MCUs (mainboard + CAN toolheads + host mcu + USB probes) must run firmware built from the SAME Klipper commit as the host. Updating the host without reflashing every MCU = 'Command format mismatch' or subtle protocol faults."}
+      ]
+    }
+  }
+}
