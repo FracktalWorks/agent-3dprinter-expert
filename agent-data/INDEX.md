@@ -1,8 +1,8 @@
 # agent-data — INDEX
 
-Reference data for Anil (3D Printer Expert). All files in this directory are
+Reference data for the 3D Printer Expert agent. All files in this directory are
 read-only — the agent references them but never modifies them — except
-`knowledge-base/`, which is a generated scrape corpus (gitignored).
+`knowledge-base/`, the committed scrape corpus (refreshed via `TODO.md`).
 
 ## Framework Reference Docs
 

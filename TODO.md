@@ -1,4 +1,4 @@
-# TODO — Anil Agent
+# TODO — 3D Printer Expert Agent
 
 ## 🔲 1. Seed the Klipper knowledge corpus (run on DESKTOP)
 
@@ -71,7 +71,7 @@ a symptom the graph doesn't cover
 
 ## ✅ Done
 
-- Anil agent (Copilot + Claude Code), 20 registered tools
+- 3D Printer Expert agent (Copilot + Claude Code), 20 registered tools
 - Comprehensive Klipper error database (`agent-data/klipper_error_reference.json`)
 - Klipper peripherals & combinations reference (`agent-data/klipper_peripherals_reference.json`)
 - Moonraker / Mainsail / Pi / display diagnostic scripts

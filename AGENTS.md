@@ -1,10 +1,10 @@
-# Anil — 3D Printer Expert Agent Instructions
+# 3D Printer Expert — Agent Instructions
 
-> **Anil** is an expert agent that debugs 3D printer firmware, software, and
+> A self-annealing expert agent that debugs 3D printer firmware, software, and
 > hardware issues using the DOE Framework. Diagnoses Klipper (every MCU/TMC/
 > thermal error, with exact causes), OctoPrint, Moonraker, Mainsail,
 > Raspberry Pi, display boards, electronics, and ControlCenter problems.
-> Runs in **GitHub Copilot (VS Code)** via `.github/agents/anil.agent.md`
+> Runs in **GitHub Copilot (VS Code)** via `.github/agents/3d-printer-expert.agent.md`
 > and in **Claude Code** via `CLAUDE.md` + `.claude/skills/`.
 
 > ⚠ **Graphify must be installed to properly use this agent** — the Klipper

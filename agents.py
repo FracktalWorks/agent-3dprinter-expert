@@ -569,8 +569,8 @@ def build_agent() -> "GitHubCopilotAgent":
     from copilot.types import PermissionHandler                     # type: ignore[import]
 
     return GitHubCopilotAgent(
-        name="anil",
-        description="Anil — expert 3D printer debugging agent. Full-stack Klipper diagnosis (every MCU/TMC/thermal error explained), OctoPrint + Moonraker + Mainsail tooling, Raspberry Pi and SPI/HDMI display debugging, electronics diagnostics, and a Graphify-powered knowledge graph of Klipper issues and forums.",
+        name="3d-printer-expert",
+        description="Self-annealing 3D printer debugging expert. Full-stack Klipper diagnosis (every MCU/TMC/thermal error explained), OctoPrint + Moonraker + Mainsail tooling, Raspberry Pi and SPI/HDMI display debugging, electronics diagnostics, and a Graphify-powered knowledge graph of Klipper issues and forums.",
         instructions=SYSTEM_PROMPT,
         tools=[
             parse_klipper_log,

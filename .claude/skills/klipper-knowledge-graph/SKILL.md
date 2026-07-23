@@ -49,6 +49,7 @@ Escalation order when debugging an unknown error:
 4. `klipper_kb_scraper.py --query` then `graphify_kb.py --update` (fresh evidence)
 
 Env: `GITHUB_TOKEN` (scraper rate limits), one of `ANTHROPIC_API_KEY`/
-`OPENAI_API_KEY`/`GEMINI_API_KEY` (Graphify doc extraction). Outputs
-(`agent-data/knowledge-base/`, `graphify-out/`, `.tmp/klipper-src/`) are
-gitignored — never commit them.
+`OPENAI_API_KEY`/`GEMINI_API_KEY` (Graphify doc extraction). The scraped
+corpus (`agent-data/knowledge-base/`) IS committed — stored knowledge;
+`graphify-out/` and `.tmp/klipper-src/` are gitignored, never commit those.
+Seeding runbook: `TODO.md` (scraping needs desktop network permissions).

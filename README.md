@@ -7,10 +7,10 @@
 > GitHub issues and community forums.
 
 **Works in both:**
-- **GitHub Copilot (VS Code)** — select **"Anil"** from the Copilot Chat agent
-  dropdown (`.github/agents/anil.agent.md`)
+- **GitHub Copilot (VS Code)** — select **"3D Printer Expert"** from the Copilot Chat agent
+  dropdown (`.github/agents/3d-printer-expert.agent.md`)
 - **Claude Code** — open this repo in Claude Code; `CLAUDE.md` and the skills
-  in `.claude/skills/` load automatically (plus an `anil` subagent in
+  in `.claude/skills/` load automatically (plus a `3d-printer-expert` subagent in
   `.claude/agents/`)
 
 ## ⚠ Required: Install Graphify
@@ -36,7 +36,7 @@ Without Graphify the agent still works using its local curated references
 (comprehensive Klipper error DB, hardware/electronics reference, print
 quality DB) — but knowledge-graph queries will be unavailable.
 
-## What Anil can debug
+## What this agent can debug
 
 | Domain | Tooling |
 |--------|---------|
@@ -64,7 +64,7 @@ VS Code will automatically:
 3. Run setup (creates venv, installs dependencies)
 4. Prompt to install recommended extensions
 
-Then select **"Anil"** from the Copilot Chat agent dropdown and describe
+Then select **"3D Printer Expert"** from the Copilot Chat agent dropdown and describe
 what's wrong with your printer.
 
 ## Instant Start (Claude Code)
@@ -113,12 +113,12 @@ agent-3dprinter-expert/
 ├── requirements.txt         # Python dependencies
 ├── .github/
 │   ├── prompts/system.md    # Runtime system prompt
-│   ├── agents/anil.agent.md # VS Code Copilot Chat agent definition
+│   ├── agents/3d-printer-expert.agent.md  # Copilot Chat agent
 │   └── skills/
 │       ├── 3d-printer-expert/       # Live debugging skill + 16 scripts
 │       └── klipper-knowledge-graph/ # Graphify graph + scraper + source manager
 ├── .claude/
-│   ├── agents/anil.md       # Claude Code subagent
+│   ├── agents/3d-printer-expert.md  # Claude Code subagent
 │   └── skills/              # Claude Code skill wrappers
 ├── agent-data/              # Curated references (error DB, hardware, print quality)
 │   └── knowledge-base/      # Scraped corpus (generated, gitignored)

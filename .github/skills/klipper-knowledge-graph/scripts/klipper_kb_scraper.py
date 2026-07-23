@@ -60,7 +60,7 @@ DEFAULT_FORUMS = [
 ]
 
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
-USER_AGENT = "anil-klipper-kb-scraper/1.0"
+USER_AGENT = "klipper-kb-scraper/1.0"
 MAX_COMMENTS_PER_ISSUE = 10
 MAX_POSTS_PER_TOPIC = 12
 
