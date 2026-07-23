@@ -1,4 +1,4 @@
-# Anil — 3D Printer Debugging Expert
+# 3D Printer Debugging Expert
 
 > Expert agent that debugs Fracktal Works Klipper-based 3D printers across
 > the full stack: Klipper firmware (every MCU/TMC/thermal error, with exact
