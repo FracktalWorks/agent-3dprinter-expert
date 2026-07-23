@@ -8,7 +8,7 @@ description: >
   heater/thermistor issue, display problem, or wants live printer diagnostics.
 ---
 
-# 3D Printer Debugging (Anil)
+# 3D Printer Debugging
 
 Canonical skill: `.github/skills/3d-printer-expert/SKILL.md` — read it for the
 full SOP. All scripts run from the repo root with `python <script> --help`.

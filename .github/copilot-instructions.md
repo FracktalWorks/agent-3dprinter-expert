@@ -1,6 +1,6 @@
-# Anil — Copilot Instructions
+# 3D Printer Expert — Copilot Instructions
 
-This is **Anil**, the 3D printer debugging expert — it diagnoses firmware,
+This is the **3D Printer Expert**, a self-annealing debugging agent — it diagnoses firmware,
 software, and hardware issues on Klipper-based 3D printers: Klipper errors
 (comprehensive MCU/TMC/thermal/homing/CAN error database with exact causes),
 OctoPrint, Moonraker, and Mainsail APIs, Raspberry Pi health, SPI/HDMI
@@ -15,7 +15,7 @@ holds scraped Klipper GitHub issues and forum threads.
 - `agents.py` — `build_agents()` entry point for CommandCenter dynamic agent loading
 - `config.json` — CommandCenter contract (name, integrations, tags, tool_scope)
 - `.github/prompts/system.md` — System prompt loaded by agents.py at runtime
-- `.github/agents/anil.agent.md` — VS Code Copilot Chat agent definition
+- `.github/agents/3d-printer-expert.agent.md` — VS Code Copilot Chat agent definition
 - `CLAUDE.md` + `.claude/` — Claude Code entry point (same agent, same scripts)
 - `.github/skills/3d-printer-expert/` — Live debugging skill (16 diagnostic scripts)
 - `.github/skills/klipper-knowledge-graph/` — Graphify graph, GitHub/forum scraper, Klipper source manager

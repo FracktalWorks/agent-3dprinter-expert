@@ -16,7 +16,7 @@ cost_tier: 1
 version: 0.2.0
 ---
 
-# 3D Printer Expert Skill (Anil)
+# 3D Printer Expert Skill
 
 Diagnoses and fixes firmware, software, and hardware issues across the full
 3D printing stack: Klipper firmware, OctoPrint, Moonraker, Mainsail,

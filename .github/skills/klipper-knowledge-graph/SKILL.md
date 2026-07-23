@@ -85,6 +85,8 @@ You can also use Graphify's own `/graphify` skill directly on this repo.
 
 ## Outputs
 
-- `agent-data/knowledge-base/` — scraped markdown corpus (gitignored; regenerate anytime)
-- `graphify-out/` — graph.json, graph.html, GRAPH_REPORT.md (gitignored)
+- `agent-data/knowledge-base/` — scraped markdown corpus (**committed** — it is
+  the stored knowledge; seed per `TODO.md`, which requires desktop network access)
+- `graphify-out/` — graph.json, graph.html, GRAPH_REPORT.md (gitignored; rebuilds
+  from the corpus in minutes)
 - `.tmp/klipper-src/` — local source clones (gitignored)
