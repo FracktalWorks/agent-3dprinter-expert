@@ -1,19 +1,29 @@
-# 3D Printer Expert — Agent Instructions
+# Anil — 3D Printer Expert Agent Instructions
 
-> Expert agent that debugs 3D printer firmware and software issues using the
-> DOE Framework. Diagnoses Klipper, OctoPrint, and ControlCenter problems.
+> **Anil** is an expert agent that debugs 3D printer firmware, software, and
+> hardware issues using the DOE Framework. Diagnoses Klipper (every MCU/TMC/
+> thermal error, with exact causes), OctoPrint, Moonraker, Mainsail,
+> Raspberry Pi, display boards, electronics, and ControlCenter problems.
+> Runs in **GitHub Copilot (VS Code)** via `.github/agents/anil.agent.md`
+> and in **Claude Code** via `CLAUDE.md` + `.claude/skills/`.
+
+> ⚠ **Graphify must be installed to properly use this agent** — the Klipper
+> knowledge graph (scraped GitHub issues + forum threads) requires it:
+> `uv tool install graphifyy` (or `pipx install graphifyy`), then
+> `graphify install`.
 
 ## Architecture (DOE v2)
 
-**Layer 1 — Skills:** `.github/skills/3d-printer-expert/SKILL.md` define debug workflows.
+**Layer 1 — Skills:** `.github/skills/*/SKILL.md` define debug workflows.
 **Layer 2 — Orchestration:** You (the LLM) read the skill, call diagnostic scripts, apply judgment.
-**Layer 3 — Execution:** `.github/skills/3d-printer-expert/scripts/` do the actual log parsing, API queries, config validation.
+**Layer 3 — Execution:** `.github/skills/*/scripts/` do the actual log parsing, API queries, config validation.
 
 ## Available Skills
 
 | Skill | SKILL.md | What it does |
 |-------|----------|--------------|
-| 3D Printer Expert | `.github/skills/3d-printer-expert/SKILL.md` | Log parsing, API diagnostics, config analysis, SSH management, data visualization, remote config editing, code reference, **live interactive diagnostics wizard**, **real-time WebSocket monitoring** |
+| 3D Printer Expert | `.github/skills/3d-printer-expert/SKILL.md` | Log parsing, **comprehensive Klipper error DB**, OctoPrint + **Moonraker** + **Mainsail** diagnostics, config analysis, SSH management, **Raspberry Pi health**, **SPI/HDMI display debugging**, data visualization, remote config editing, code reference, live interactive diagnostics wizard, real-time WebSocket monitoring |
+| Klipper Knowledge Graph | `.github/skills/klipper-knowledge-graph/SKILL.md` | **Graphify knowledge graph** — scrape Klipper GitHub issues + Discourse forums, build/query the graph, maintain local Klipper source clones for error-origin lookups |
 
 ## Platform Tools (injected by CommandCenter)
 
@@ -40,6 +50,14 @@
 | `live_printer_diagnostics` | `live_printer_diagnostics.py` | **Interactive diagnostic wizard** — live REST API checks for thermistor, heater, extrusion, homing, motion, probe; human-in-the-loop support; generates structured reports |
 | `octoprint_websocket` | `octoprint_websocket_client.py` | **Real-time OctoPrint WebSocket** — live temperature streaming, event capture, Klipper state tracking, anomaly detection (rapid temp drops, oscillations); ControlCenter-compatible SockJS protocol |
 | `print_quality_analyzer` | `print_quality_analyzer.py` | **Print quality diagnostic** — matches symptoms to 24+ known issues in a comprehensive database; provides targeted fixes, Klipper commands, slicer settings, and material-specific guidance |
+| `klipper_error_lookup` | `klipper_error_lookup.py` | **Comprehensive Klipper error DB** — exact mechanism, diagnostics, and fixes for every MCU/TMC/thermal/homing/extrusion/CAN/config error |
+| `moonraker_api` | `moonraker_api.py` | **Moonraker REST API** — klippy state, printer objects, temps, gcode, job history, update manager, power devices, service restarts, WebSocket test |
+| `mainsail_diagnostics` | `mainsail_diagnostics.py` | **Mainsail web stack health** — nginx frontend, Moonraker REST/WebSocket, CORS, versions, SSH-layer checks, known failure modes |
+| `pi_system_diagnostics` | `pi_system_diagnostics.py` | **Raspberry Pi health** — undervoltage/throttle decode, thermal, SD card, network, USB serial, CAN bus, services, boot config, journal |
+| `display_diagnostics` | `display_diagnostics.py` | **Display boards** — SPI TFT overlays, HDMI/DSI, framebuffers, KMS, touch calibration, KlipperScreen, backlight, known failure modes |
+| `graphify_knowledge_graph` | `graphify_kb.py` | **Graphify knowledge graph** — build/query/serve the Klipper debugging graph (requires Graphify installed) |
+| `klipper_kb_scraper` | `klipper_kb_scraper.py` | Scrape Klipper GitHub issues + Discourse forums into the knowledge corpus |
+| `klipper_source` | `klipper_source_manager.py` | Local Klipper source clones (official + klipper_IDEX) — locate exactly where any error is raised |
 
 ## Fracktal Works Context
 

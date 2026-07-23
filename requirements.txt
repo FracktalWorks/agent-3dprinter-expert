@@ -5,6 +5,7 @@ google-api-python-client
 google-auth-httplib2
 google-auth-oauthlib
 openai
+paramiko
 pyserial
 python-dotenv
 requests
@@ -12,3 +13,8 @@ websocket-client
 
 # Optional: Enables semantic/hybrid search in memory system
 # sentence-transformers
+
+# Knowledge graph — install Graphify as a TOOL, not a library dependency:
+#   uv tool install graphifyy    (or: pipx install graphifyy)
+#   graphify install
+# Required to properly use the agent's knowledge-graph features.

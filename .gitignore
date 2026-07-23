@@ -46,5 +46,11 @@ Thumbs.db
 *.log
 logs/
 
+# Knowledge graph artifacts (regenerated — see klipper-knowledge-graph skill)
+graphify-out/
+agent-data/knowledge-base/*
+!agent-data/knowledge-base/README.md
+.tmp/klipper-src/
+
 # Don't ignore .vscode - we want the settings
 !.vscode/

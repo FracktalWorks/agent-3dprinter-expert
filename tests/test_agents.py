@@ -59,6 +59,14 @@ def test_agent_has_tools():
             "visualize_data",
             "remote_config_editor",
             "klipper_docs",
+            "klipper_error_lookup",
+            "moonraker_api",
+            "mainsail_diagnostics",
+            "pi_system_diagnostics",
+            "display_diagnostics",
+            "graphify_knowledge_graph",
+            "klipper_kb_scraper",
+            "klipper_source",
         ]
         for name in required:
             assert name in tool_names, (
