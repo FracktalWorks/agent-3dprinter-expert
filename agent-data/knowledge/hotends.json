@@ -1,0 +1,79 @@
+{
+  "v6": {
+    "max_temp": "300C",
+    "filament": "1.75mm",
+    "type": "all-metal"
+  },
+  "volcano": {
+    "max_temp": "300C",
+    "filament": "1.75mm",
+    "type": "all-metal",
+    "melt_zone": "extended"
+  },
+  "dragon": {
+    "max_temp": "500C",
+    "filament": "1.75mm",
+    "type": "all-metal"
+  },
+  "dragon_hf": {
+    "max_temp": "500C",
+    "filament": "1.75mm",
+    "type": "all-metal",
+    "flow": "high"
+  },
+  "rapido": {
+    "max_temp": "500C",
+    "filament": "1.75mm",
+    "type": "all-metal",
+    "flow": "high"
+  },
+  "revo": {
+    "max_temp": "300C",
+    "filament": "1.75mm",
+    "type": "quick-swap"
+  },
+  "revo_high_temp": {
+    "max_temp": "500C",
+    "filament": "1.75mm",
+    "type": "quick-swap"
+  },
+  "nf-smart": {
+    "max_temp": "280C",
+    "filament": "1.75mm",
+    "type": "PTFE-lined"
+  },
+  "e3d_hemera": {
+    "max_temp": "300C",
+    "filament": "1.75mm",
+    "type": "direct-drive-integrated"
+  },
+  "orbiter": {
+    "max_temp": "280C",
+    "filament": "1.75mm",
+    "type": "direct-drive"
+  },
+  "lgx_lite": {
+    "max_temp": "280C",
+    "filament": "1.75mm",
+    "type": "direct-drive"
+  },
+  "bambu_x1": {
+    "max_temp": "300C",
+    "filament": "1.75mm",
+    "type": "all-metal",
+    "notes": "Bambu Lab X1 series"
+  },
+  "bambu_p1": {
+    "max_temp": "300C",
+    "filament": "1.75mm",
+    "type": "all-metal",
+    "notes": "Bambu Lab P1 series"
+  },
+  "bambu_a1": {
+    "max_temp": "300C",
+    "filament": "1.75mm",
+    "type": "all-metal",
+    "notes": "Bambu Lab A1 series"
+  },
+  "last_checked": "2026-07-03T12:19:31.878980"
+}

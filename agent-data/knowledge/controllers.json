@@ -1,0 +1,66 @@
+{
+  "skr_mini_e3_v3": {
+    "mcu": "STM32G0B1",
+    "drivers": "TMC2209",
+    "form": "3.5x2.3in"
+  },
+  "skr_3": {
+    "mcu": "STM32F407",
+    "drivers": "5x",
+    "form": "4x2.8in"
+  },
+  "skr_2": {
+    "mcu": "STM32F407",
+    "drivers": "4x",
+    "form": "4x2.8in"
+  },
+  "duet_3_mini": {
+    "mcu": "SAME54",
+    "drivers": "5x",
+    "form": "4x2.8in"
+  },
+  "duet_3_6hc": {
+    "mcu": "SAME70",
+    "drivers": "6x",
+    "form": "5.5x3.9in"
+  },
+  "btt_octopus": {
+    "mcu": "STM32F407",
+    "drivers": "8x",
+    "form": "4.5x3.5in"
+  },
+  "btt_gtr": {
+    "mcu": "STM32F407",
+    "drivers": "8x",
+    "form": "4.5x3.3in"
+  },
+  "manta_m8p": {
+    "mcu": "STM32F407",
+    "drivers": "8x",
+    "form": "4.5x3.3in",
+    "features": [
+      "CB1/CM4 support"
+    ]
+  },
+  "fly_super8": {
+    "mcu": "STM32F407",
+    "drivers": "8x",
+    "form": "4.3x3.5in"
+  },
+  "rambo_1.1": {
+    "mcu": "ATMEGA2560",
+    "drivers": "4x",
+    "form": "5x3.5in"
+  },
+  "waveshare_rp2040": {
+    "mcu": "RP2040",
+    "drivers": "0 (add-on)",
+    "form": "2.1x0.9in"
+  },
+  "bambu_x1_controller": {
+    "mcu": "custom",
+    "drivers": "3x TMC2209",
+    "notes": "Bambu Lab X1 series MCB"
+  },
+  "last_checked": "2026-07-03T12:19:31.879733"
+}

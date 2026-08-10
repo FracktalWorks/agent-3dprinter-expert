@@ -44,6 +44,26 @@ KLIPPER_SRC_DIR = Path(os.environ.get("KLIPPER_SRC_DIR",
                        REPO_ROOT / ".tmp" / "klipper-src"))
 GRAPH_OUT_DIR = Path(os.environ.get("GRAPHIFY_OUT_DIR", REPO_ROOT / "graphify-out"))
 GRAPH_JSON = GRAPH_OUT_DIR / "graph.json"
+# graphify may nest output: graphify-out/<source-name>/graph.json
+GRAPH_JSON_NESTED = GRAPH_OUT_DIR / GRAPH_OUT_DIR.name / "graph.json"
+GRAPH_HTML = GRAPH_OUT_DIR / "graph.html"
+GRAPH_HTML_NESTED = GRAPH_OUT_DIR / GRAPH_OUT_DIR.name / "graph.html"
+
+def _find_graph_json() -> Path | None:
+    """Find graph.json in either the direct or nested location."""
+    if GRAPH_JSON.exists():
+        return GRAPH_JSON
+    if GRAPH_JSON_NESTED.exists():
+        return GRAPH_JSON_NESTED
+    return None
+
+def _find_graph_html() -> Path | None:
+    """Find graph.html in either the direct or nested location."""
+    if GRAPH_HTML.exists():
+        return GRAPH_HTML
+    if GRAPH_HTML_NESTED.exists():
+        return GRAPH_HTML_NESTED
+    return None
 
 INSTALL_HELP = """\
 Graphify is NOT installed — the knowledge-graph features of this agent
@@ -63,7 +83,14 @@ Docs: https://github.com/Graphify-Labs/graphify
 
 
 def graphify_bin() -> str:
-    return shutil.which("graphify") or ""
+    binary = shutil.which("graphify")
+    if binary:
+        return binary
+    # Also check the venv's Scripts directory (installed via pip, not uv/pipx)
+    venv_graphify = REPO_ROOT / ".venv" / "Scripts" / "graphify.exe"
+    if venv_graphify.exists():
+        return str(venv_graphify)
+    return ""
 
 
 def require_graphify() -> str:
@@ -93,14 +120,18 @@ def action_check() -> None:
     print(f"  corpus:  {CORPUS_DIR} "
           f"({'exists' if CORPUS_DIR.exists() else 'MISSING — run klipper_kb_scraper.py'})")
     print(f"  graph:   {GRAPH_JSON} "
-          f"({'built' if GRAPH_JSON.exists() else 'not built yet — run --build'})")
+          f"({'built' if _find_graph_json() else 'not built yet — run --build'})")
     print(f"  klipper source: {KLIPPER_SRC_DIR} "
           f"({'present' if KLIPPER_SRC_DIR.exists() else 'absent (optional — klipper_source_manager.py --clone)'})")
 
 
-def _build_targets(include_source: bool) -> list:
+def _build_targets(include_source: bool, code_only: bool = False) -> list:
     targets = []
-    if CORPUS_DIR.exists() and any(CORPUS_DIR.rglob("*.md")):
+    if code_only:
+        # In code-only mode, skip the knowledge-base (docs) directory
+        # and only include directories with code/config files
+        pass  # knowledge-base is doc-only, skip it
+    elif CORPUS_DIR.exists() and any(CORPUS_DIR.rglob("*.md")):
         targets.append(str(CORPUS_DIR))
     # Curated references (error DB, hardware reference, print quality DB)
     targets.append(str(AGENT_DATA_DIR))
@@ -109,22 +140,30 @@ def _build_targets(include_source: bool) -> list:
     return targets
 
 
-def action_build(include_source: bool, update_only: bool, backend: str) -> None:
+def action_build(include_source: bool, update_only: bool, backend: str,
+                  code_only: bool = False) -> None:
     if not CORPUS_DIR.exists() or not any(CORPUS_DIR.rglob("*.md")):
         print(f"NOTE: no scraped corpus at {CORPUS_DIR} — the graph will only "
               "contain curated agent-data. Populate it first with:\n"
               "  python .github/skills/klipper-knowledge-graph/scripts/"
               "klipper_kb_scraper.py --source all", file=sys.stderr)
-    targets = _build_targets(include_source)
+    targets = _build_targets(include_source, code_only)
     GRAPH_OUT_DIR.mkdir(parents=True, exist_ok=True)
     for target in targets:
         args = ["extract", target, "--out", str(GRAPH_OUT_DIR)]
         if update_only:
             args.append("--update")
+        if code_only:
+            args.append("--code-only")
         if backend:
             args.extend(["--backend", backend])
         result = run_graphify(args)
         if result.returncode != 0:
+            stderr_text = (result.stderr or "").strip()
+            if "graph is empty" in stderr_text or "skipping" in stderr_text:
+                print(f"NOTE: {target} produced no graph nodes (empty/skipped)"
+                      " — continuing.", file=sys.stderr)
+                continue
             print(f"graphify extract failed for {target} "
                   f"(exit {result.returncode}). If this is a docs-only target, "
                   "make sure an LLM backend key is set (ANTHROPIC_API_KEY / "
@@ -137,14 +176,15 @@ def action_build(include_source: bool, update_only: bool, backend: str) -> None:
 
 
 def action_status() -> None:
-    if not GRAPH_JSON.exists():
-        print(f"No graph at {GRAPH_JSON} — run --build first.")
+    graph_json = _find_graph_json()
+    if not graph_json:
+        print(f"No graph at {GRAPH_JSON} or {GRAPH_JSON_NESTED} — run --build first.")
         sys.exit(1)
     try:
-        data = json.loads(GRAPH_JSON.read_text(encoding="utf-8"))
+        data = json.loads(graph_json.read_text(encoding="utf-8"))
         nodes = data.get("nodes", data.get("entities", []))
         edges = data.get("edges", data.get("links", data.get("relationships", [])))
-        print(f"Graph: {GRAPH_JSON}")
+        print(f"Graph: {graph_json}")
         print(f"  nodes: {len(nodes)}")
         print(f"  edges: {len(edges)}")
     except (json.JSONDecodeError, OSError) as e:
@@ -156,10 +196,11 @@ def action_status() -> None:
 
 def action_serve(transport: str, host: str, port: str) -> None:
     require_graphify()
-    if not GRAPH_JSON.exists():
-        print(f"No graph at {GRAPH_JSON} — run --build first.", file=sys.stderr)
+    graph_json = _find_graph_json()
+    if not graph_json:
+        print(f"No graph at {GRAPH_JSON} or {GRAPH_JSON_NESTED} — run --build first.", file=sys.stderr)
         sys.exit(1)
-    cmd = [sys.executable, "-m", "graphify.serve", str(GRAPH_JSON)]
+    cmd = [sys.executable, "-m", "graphify.serve", str(graph_json)]
     if transport == "http":
         cmd.extend(["--transport", "http", "--host", host, "--port", port])
     print(f"Starting Graphify MCP server: {' '.join(cmd)}", file=sys.stderr)
@@ -175,6 +216,8 @@ def main():
     parser.add_argument("--update", action="store_true", help="Incremental re-extract of changed files")
     parser.add_argument("--include-source", action="store_true",
                         help="Also ingest the local Klipper source clone into the graph")
+    parser.add_argument("--code-only", action="store_true",
+                        help="Index only code/config files (no LLM key needed)")
     parser.add_argument("--backend", default="",
                         help="LLM backend for doc extraction (anthropic|openai|gemini)")
     parser.add_argument("--status", action="store_true", help="Show graph statistics")
@@ -191,7 +234,8 @@ def main():
     if args.check:
         action_check()
     elif args.build or args.update:
-        action_build(args.include_source, args.update and not args.build, args.backend)
+        action_build(args.include_source, args.update and not args.build,
+                     args.backend, args.code_only)
     elif args.status:
         action_status()
     elif args.query:
