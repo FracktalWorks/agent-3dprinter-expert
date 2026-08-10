@@ -1,0 +1,64 @@
+{
+  "a4988": {
+    "max_current": "2A",
+    "voltage": "8-35V",
+    "microsteps": "1/16"
+  },
+  "drv8825": {
+    "max_current": "2.5A",
+    "voltage": "8.2-45V",
+    "microsteps": "1/32"
+  },
+  "tmc2208": {
+    "max_current": "2A",
+    "voltage": "4.75-36V",
+    "microsteps": "1/256",
+    "features": [
+      "stealthChop",
+      "spreadCycle"
+    ]
+  },
+  "tmc2209": {
+    "max_current": "2A",
+    "voltage": "4.75-36V",
+    "microsteps": "1/256",
+    "features": [
+      "stealthChop",
+      "spreadCycle",
+      "stallGuard"
+    ]
+  },
+  "tmc2225": {
+    "max_current": "2A",
+    "voltage": "4.75-36V",
+    "microsteps": "1/256",
+    "features": [
+      "stealthChop",
+      "spreadCycle"
+    ]
+  },
+  "tmc2226": {
+    "max_current": "2A",
+    "voltage": "4.75-36V",
+    "microsteps": "1/256",
+    "features": [
+      "stealthChop",
+      "spreadCycle",
+      "stallGuard",
+      "coolStep"
+    ]
+  },
+  "tmc5160": {
+    "max_current": "3A",
+    "voltage": "8-46V",
+    "microsteps": "1/256",
+    "features": [
+      "stealthChop",
+      "spreadCycle",
+      "stallGuard",
+      "coolStep",
+      "dcStep"
+    ]
+  },
+  "last_checked": "2026-07-03T12:19:31.878257"
+}

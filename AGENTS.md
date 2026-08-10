@@ -24,6 +24,9 @@
 |-------|----------|--------------|
 | 3D Printer Expert | `.github/skills/3d-printer-expert/SKILL.md` | Log parsing, **comprehensive Klipper error DB**, OctoPrint + **Moonraker** + **Mainsail** diagnostics, config analysis, SSH management, **Raspberry Pi health**, **SPI/HDMI display debugging**, data visualization, remote config editing, code reference, live interactive diagnostics wizard, real-time WebSocket monitoring |
 | Klipper Knowledge Graph | `.github/skills/klipper-knowledge-graph/SKILL.md` | **Graphify knowledge graph** — scrape Klipper GitHub issues + Discourse forums, build/query the graph, maintain local Klipper source clones for error-origin lookups |
+| Report & BOM | `.github/skills/report-bom/SKILL.md` | **Documentation generation** — PDF diagnostic reports, Excel BOMs, printer config summaries, calibration reports, fix records |
+| Printer Troubleshoot (RnD) | `.github/skills/printer-troubleshoot-rnd/SKILL.md` | **Multi-interface diagnostics** — serial (USB/UART), OctoPrint REST, Moonraker WebSocket; fix record storage; structured diagnostic output |
+| Knowledge Base | `agent-data/knowledge/` | **3D printing knowledge** — controllers, firmware (Marlin/Klipper/RRF), stepper drivers, hotends, sensors, printers, surfaces, materials, motion systems |
 
 ## Platform Tools (injected by CommandCenter)
 

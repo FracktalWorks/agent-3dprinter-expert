@@ -1,0 +1,127 @@
+================================================================================
+IISc Clay 3D Printer ? Session Documentation
+Date: 2026-07-30
+Board: BTT Manta M5P (STM32G0B1) | Host: Raspberry Pi CM4 | Firmware: Klipper
+================================================================================
+
+=== FINAL CONFIGURATION ========================================================
+
+PRINTER:       CoreXY, 200x200x200mm
+HOME:          X=0 (left, min), Y=200 (top/max)
+SPEED:         800 mm/s max
+ACCEL:         7,000 mm/s^2 max (confirmed safe)
+POWER:         48V (TMC5160 drivers with 48V tuning)
+DISPLAY:       Waveshare 3.5" SPI (rotate=90), fbcp HDMI->SPI
+TOUCH:         ADS7846, calibrated via Xorg (SwapXY=1, InvertY=1)
+
+=== MOTOR PIN MAP (BTT Manta M5P) ==============================================
+
+Axis | Step  | Dir   | Enable | CS   | Driver   | Endstop | Home
+-----|-------|-------|--------|------|----------|---------|------
+X    | PA10  | !PA14 | !PA13  | PD8  | TMC5160  | ^PD3    | 0 (min)
+Y    | PC8   | PC9   | !PA15  | PD9  | TMC5160  | ^PD2    | 200 (max)
+Z    | PC6   | PC7   | !PA9   | PB10 | TMC5160  | ^PC3    | 0
+E0   | PB12  | !PB11 | !PA8   | PB2  | TMC5160  | N/A     | N/A (Auger)
+E1   | PB0   | PB1   | !PC4   | PA6  | TMC5160  | N/A     | N/A (Plunger)
+
+SPI Bus: MOSI=PB15, MISO=PB14, SCK=PB13
+
+=== TMC5160 48V TUNING (ALL 5 DRIVERS) ==========================================
+
+stealthchop_threshold: 0       # SpreadCycle mode (required at 48V)
+driver_IHOLDDELAY: 8           # Hold current delay
+driver_TPOWERDOWN: 128         # Power-down delay (prevents overheat)
+driver_TBL: 2                  # Comparator blanking time
+driver_TOFF: 3                 # Slow-decay off time
+driver_HEND: 5                 # Hysteresis end
+driver_HSTRT: 7                # Hysteresis start
+driver_PWM_AUTOSCALE: True     # Auto-regulate PWM for supply voltage
+
+XY run_current: 1.2A | E0/E1 run_current: 0.85A
+
+================================================================================
+SPEED/ACCEL TEST RESULTS
+================================================================================
+
+TEST METHODOLOGY:
+- Ellis-style progressive speed test with SET_VELOCITY_LIMIT
+- X axis: 150mm travel (X25 <-> X175)
+- Y axis: 150mm travel (Y25 <-> Y175)
+- Diagonal: 212mm travel (X25,Y25 <-> X175,Y175)
+- 3-5 back-forth passes per speed level
+- 0.6-1.5s pauses between levels
+
+RESULTS (Before 48V TMC tuning):
+| Test | Accel | Max Speed | Result |
+|------|-------|-----------|--------|
+| 1    | 20000 | 1000      | Skipped at 600 (way too aggressive) |
+| 2    | 5000  | 2000      | All passed (conservative, smooth) |
+| 3    | 10000 | 1000      | Y skipped at 600 |
+| 4    | 20000 | 2000      | Skipped at 600 |
+| 5    | 10000 | 800       | X OK, Y marginal |
+| 6    | 15000 | 800       | Skipped |
+| 7    | 5000  | 800       | ALL PASSED (safe baseline) |
+
+RESULTS (After 48V TMC tuning ? driver_IHOLDDELAY etc):
+| Test | Accel | Max Speed | Result |
+|------|-------|-----------|--------|
+| 8    | 10000 | 1000      | Y skipped at 600 |
+| 9    | 15000 | 1200      | Failed |
+| 10   | 1000  | 800       | Buttery smooth |
+| 11   | 7000  | 800       | ALL PASSED ? FINAL SAFE LIMIT |
+
+FINAL VERIFIED LIMITS:
+  max_velocity: 800 mm/s
+  max_accel:    7000 mm/s^2
+
+================================================================================
+DISPLAY & TOUCH CONFIGURATION
+================================================================================
+
+DISPLAY:
+  Device: Waveshare 3.5" (ILI9486) on SPI
+  Overlay: dtoverlay=waveshare35a,rotate=90,fps=12,speed=16000000
+  Framebuffer: fbcp mirrors HDMI (fb0, 800x480) to SPI (fb1, 480x320)
+  Service: fbcp.service (enabled)
+
+TOUCH:
+  Device: ADS7846 Touchscreen on SPI0.1
+  Calibration: /etc/X11/xorg.conf.d/99-calibration.conf
+    MinX=19811, MaxX=19920, MinY=52951, MaxY=53680
+    SwapXY=1, InvertX=0, InvertY=1
+  Old matrix service: touch-cal.service (DISABLED ? replaced by Xorg calib)
+
+CO2 SENSOR:
+  Dummy pusher: co2_dummy.service (active, pushes 0.0 ppm)
+  Macro file: co2_macros.cfg (NOT included in printer.cfg)
+  When sensor connected: use /home/pi/co2-bridge/co2_bridge.py
+
+================================================================================
+FILES BACKED UP
+================================================================================
+
+Local: c:\Users\admin\agent-3dprinter-expert\outputs\
+  printer.cfg                 ? Full current printer configuration
+  session_report.txt          ? This document
+
+Pi: /home/pi/printer_data/config/
+  printer.cfg                 ? Active config
+  printer.cfg.bak_stepper_fix ? Original working backup
+  printer.cfg.bak_current     ? Pre-session backup
+  printer.cfg.bak_latest      ? Most recent before final
+  co2_macros.cfg              ? CO2 macros (not currently included)
+
+Pi: /etc/X11/xorg.conf.d/
+  99-calibration.conf         ? Touch calibration (active)
+
+================================================================================
+KNOWN ISSUES / NOTES
+================================================================================
+
+1. Klippy log is at /tmp/klippy.log, NOT /home/pi/printer_data/logs/klippy.log
+2. MCU sometimes needs power cycle after multiple Klipper restarts
+3. X/Y motors are physically swapped (config corrected with pin swap + dir flip)
+4. CO2 sensor not connected ? dummy pusher shows 0 ppm graph
+5. WiFi: both 5GHz (Fracktal Works 5) and 2.4GHz saved
+6. KlipperScreen crashed once during testing ? restarted OK
+7. X endstop at min (pos 0), Y endstop at max (pos 200)

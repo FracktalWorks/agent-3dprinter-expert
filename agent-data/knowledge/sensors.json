@@ -1,0 +1,57 @@
+{
+  "bltouch": {
+    "type": "inductive+mechanical",
+    "accuracy": "0.01mm",
+    "voltage": "5V"
+  },
+  "3dtouch": {
+    "type": "inductive+mechanical",
+    "accuracy": "0.01mm",
+    "voltage": "5V",
+    "notes": "BLTouch clone"
+  },
+  "klackender": {
+    "type": "mechanical",
+    "accuracy": "0.005mm",
+    "voltage": "5V",
+    "notes": "Klicky-based probe"
+  },
+  "klicky": {
+    "type": "mechanical",
+    "accuracy": "0.01mm",
+    "voltage": "5V"
+  },
+  "voron_tap": {
+    "type": "mechanical",
+    "accuracy": "0.005mm",
+    "voltage": "5V",
+    "notes": "Voron TAP"
+  },
+  "inductive_pl08": {
+    "type": "inductive",
+    "accuracy": "0.03mm",
+    "voltage": "6-36V"
+  },
+  "inductive_tlq5": {
+    "type": "inductive",
+    "accuracy": "0.02mm",
+    "voltage": "10-30V"
+  },
+  "capactive": {
+    "type": "capacitive",
+    "accuracy": "0.05mm",
+    "voltage": "12-24V"
+  },
+  "microswitch": {
+    "type": "mechanical",
+    "accuracy": "0.05mm",
+    "voltage": "5V"
+  },
+  "eddy_current": {
+    "type": "eddy_current",
+    "accuracy": "0.002mm",
+    "voltage": "5V",
+    "notes": "BTT Eddy, Cartographer"
+  },
+  "last_checked": "2026-07-03T12:19:31.880440"
+}

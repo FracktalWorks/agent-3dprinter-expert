@@ -12,6 +12,7 @@ holds scraped Klipper GitHub issues and forum threads.
 > (`uv tool install graphifyy` && `graphify install`).
 
 **Key files:**
+
 - `agents.py` — `build_agents()` entry point for CommandCenter dynamic agent loading
 - `config.json` — CommandCenter contract (name, integrations, tags, tool_scope)
 - `.github/prompts/system.md` — System prompt loaded by agents.py at runtime
@@ -19,6 +20,9 @@ holds scraped Klipper GitHub issues and forum threads.
 - `CLAUDE.md` + `.claude/` — Claude Code entry point (same agent, same scripts)
 - `.github/skills/3d-printer-expert/` — Live debugging skill (16 diagnostic scripts)
 - `.github/skills/klipper-knowledge-graph/` — Graphify graph, GitHub/forum scraper, Klipper source manager
+- `.github/skills/report-bom/` — PDF report + Excel BOM generation
+- `.github/skills/printer-troubleshoot-rnd/` — Multi-interface diagnostics + fix records
+- `agent-data/knowledge/` — 3D printing knowledge base (controllers, firmware, drivers, sensors, hotends)
 - `agent-data/klipper_error_reference.json` — Comprehensive Klipper error database
 
 **Architecture:** Skills (what to do) → Orchestration (decision making) → Execution (doing the work)
