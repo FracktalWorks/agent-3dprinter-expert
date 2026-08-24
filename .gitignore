@@ -57,3 +57,8 @@ graphify-out/
 
 # Personal skill-observation log (task-observer meta-skill) — not team content
 skill-observations/
+
+# slicer validation scratch
+agent-data/machines/mandel/slicer/_validate/
+# generated test gcode — regenerate with gen_cylinder.py
+agent-data/machines/mandel/**/*.gcode

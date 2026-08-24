@@ -16,6 +16,7 @@ The machine at `192.168.0.34` is authoritative; these exist so that:
 | `panels/clay.py` | `~/KlipperScreen/panels/clay.py` | **this file exists in no other git repo** — KlipperScreen is a plain clone and the panel is untracked there |
 | `gcode/gen_cylinder.py` | *(nowhere — runs on the workstation)* | generates the test cylinder; the only g-code author that knows the volumetric convention |
 | `klipperscreen/` | `~/KlipperScreen` + `KlipperScreen.conf` | the four locally-patched upstream files, as a diff — **a KlipperScreen update destroys them**. See its README |
+| `slicer/` | *(the workstation)* | PrusaSlicer config bundle for the 3/4/5/6 mm nozzles, and why PrusaSlicer rather than Cura. See its README |
 
 Not snapshotted, deliberately: `clay_vars.cfg` (runtime state, changes every time
 the operator turns a knob) and the generated `.gcode` (regenerate it instead).

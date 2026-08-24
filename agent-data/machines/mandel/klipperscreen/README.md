@@ -39,7 +39,7 @@ All of them serve the **CO₂ readout**, plus one line for the clay panel:
 > **Note the awkward fact:** three of these four patches decorate a subsystem
 > that does not work. The CO₂ plumbing is entirely dead — macros never included,
 > bridge not running, and the ppm value is a **floating ADC pin**. The title bar
-> is displaying noise in units of PPM. See §10 of
+> is displaying noise in units of PPM. See §12 of
 > [`../../mandel_clay_printer.md`](../../mandel_clay_printer.md). Preserved
 > as-is because removing them is a separate decision, not a backup's job.
 

@@ -23,11 +23,15 @@ when debugging motion or extrusion.
    several of them were wrong in ways that took hours to find.
 4. Then §2 (the volumetric model) and §5 (ceilings). Everything else hangs off
    those two.
+5. **Slicing is §10.** PrusaSlicer, and `validate.py` must be run after any
+   profile change — it slices a real object and asserts on the G-code.
 
-Current state, 2026-08-11: 16 microsteps both motors, auger ceiling **307 RPM**
+Current state, 2026-08-24: 16 microsteps both motors, auger ceiling **307 RPM**
 (measured), print-speed cap armed by the g-code and tracking the live ratio,
-ratio-scaling bug fixed in both the panel and `CLAY_AUGER_SPIN`. The Ø40 test
-cylinder is uploaded and has not yet printed successfully past layer 1.
+ratio-scaling bug fixed in both the panel and `CLAY_AUGER_SPIN`, Z offset +0.5 mm.
+`cylinder_d50_clay.gcode` is uploaded. PrusaSlicer is configured and validated
+(§10). **No print has yet succeeded past layer 1** — the last attempt stalled the
+auger at layer 2, which the speed cap now exists to prevent.
 
 ---
 
@@ -306,6 +310,7 @@ rotation is `auger_vol_rev / balance`.
 | `~/printer_data/config/clay_vars.cfg` | persisted settings |
 | `~/KlipperScreen/panels/clay.py` | the touchscreen panel — **lives only on the Pi**, not in any git repo |
 | `~/printer_data/gcodes/` | print files |
+| `mandel/slicer/` | PrusaSlicer bundle + `validate.py` (workstation only) — see §10 |
 | backups | `printer.cfg.pre-clay-panel`, `.pre-auger`, `.bak-auger` |
 
 **Older gcode in `~/printer_data/gcodes/` predates volumetric E** — those files
@@ -405,6 +410,112 @@ with a skirt; bead area uses the slicer convention
 
 ---
 
+## 10. Slicing
+
+**PrusaSlicer 2.9.6.** The bundle, the reasoning for it over Cura and over the
+other PrusaSlicer forks, and a validation harness live in
+[`mandel/slicer/`](mandel/slicer/README.md). The generalisable findings are in
+[gotchas §16](../klipper_motion_gotchas.md).
+
+Three settings make a slicer fit this machine, and none of them is a preference:
+
+| setting | why |
+|---|---|
+| `filament_diameter = 1.128379` | cross-section exactly 1 mm², so **1 mm of "filament" is 1 mm³** and the slicer's E is already in the machine's units |
+| `filament_max_volumetric_speed` | the **auger's** ceiling in the slicer's own units — 50 mm³/s at 1:20, 100 at 1:10, 200 at 1:5. PrusaSlicer slows every move to fit, so the time estimate is honest too |
+| every `*_acceleration = 0` | PrusaSlicer would otherwise write an acceleration before every feature and **overwrite the `ACCEL` that `CLAY_PRINT_LIMITS` set** to keep the screw inside its envelope |
+
+Also pinned, because the machine lacks the sections they would need:
+`perimeter_generator = classic` (Arachne varies bead width; a fixed bore cannot),
+`arc_fitting = disabled` (no `[gcode_arcs]`), `gcode_label_objects = disabled`
+(no `[exclude_object]`), and `gcode_flavor = marlin` — the `klipper` flavour
+emits `SET_VELOCITY_LIMIT`, which is the very command the clay cap uses.
+
+### The 3 mm profile is the cylinder test
+
+`Clay 3mm nozzle` is the default preset and reproduces `gen_cylinder.py`
+parameter for parameter: **2.0 mm layers, 1.0 mm first layer**, 3.0 mm bead,
+5.142 mm² cross-section, 100 mm³/s design flow, 19.45 mm/s design speed, 15 mm/s
+first layer, 1 perimeter, solid bottom, no top, no infill, one skirt loop. The
+effective speed at 1:20 is 9.72 mm/s against the test file's 9.73.
+
+Two ceilings act in series: the **design flow** (100 mm³/s, what the process
+wants) and then the **auger ceiling** (what the screw passes at the live ratio).
+Whichever is lower wins — so at 1:20 the screw binds, and at 1:5 the design flow
+binds and the print does not run away just because the ratio is low.
+
+The other nozzles keep the same ~2/3-of-nozzle layer ratio and the same design
+flow, which is why they are slower: 100 mm³/s through a 20.57 mm² bead is
+4.86 mm/s. First-layer speed is bounded by the design flow as well — a flat
+15 mm/s is 42 mm³/s on the 3 mm bead but 167 mm³/s on the 6 mm one.
+
+### How a print is wired together
+
+```
+start_gcode : CLAY_PRINT_START X=100 Y=100  -> home, park, clay panel, PAUSE
+              --- operator primes by hand, sets the ratio, RESUME ---
+              CLAY_RESYNC
+              G1 X15 Y15 F6000              <- travel to the purge spot at Z MAX
+              G1 Z{first_layer_height} F6000 <- descend THERE, fast, uncapped
+              CLAY_PRINT_LIMITS BEAD={...}   <- arm the cap
+              G1 X75 E{bead*60} F1800        <- 60 mm purge line, cap sets the rate
+              G1 Z{first_layer_height+5} F1200 <- lift, so the travel cannot drag
+layer_gcode : G92 E0                         <- mandatory with relative E
+end_gcode   : M400 / CLAY_PRINT_END / G1 Z{max_layer_z + 30} F600
+```
+
+Four orderings in that block are load-bearing, and three of them were wrong at
+some point:
+
+- **Travel to the purge spot *before* descending.** PrusaSlicer otherwise
+  descends at the park position — the middle of the part footprint — leaves
+  whatever oozed during the pause right there, and then drags the nozzle out
+  through it at layer height.
+- **Descend before arming the cap.** The cap is a toolhead velocity limit, so a
+  585 mm drop from Z max under it takes about a minute.
+- **Arm the cap before the purge.** The purge is a *moving* line, so the cap
+  gives it exactly the auger's flow rate. An extrude-only purge would instead be
+  held to mm³/s = mm/s and crawl (gotchas §1).
+- **Lift after purging**, or the travel to the part drags through the purge bead.
+
+`CLAY_PRINT_LIMITS` **cannot** live in `layer_gcode` behind
+`{if layer_num == 0}`: that hook is never emitted for the first layer, so it
+fires never, silently (gotchas §16).
+
+### Purging
+
+There are three purges, in order of authority:
+
+1. **The operator, by hand, during the print-start pause.** This is the real one
+   and the reason the handover exists — you can see clay coming out before
+   anything is committed.
+2. **The 60 mm purge line** at (15, 15), laid before the part. 309 mm³ on the
+   3 mm nozzle, 1234 mm³ on the 6 mm. Its length is the constant, so the line
+   looks the same for every nozzle and the volume scales with the bead. It runs
+   at exactly the auger's rate, which makes it a flow check you can look at.
+3. **The skirt**, one loop, which establishes flow at the part's own radius.
+
+### Always validate by slicing
+
+```bash
+python mandel/slicer/validate.py [--nozzle 3|4|5|6] [--ratio 5|10|20] [--vase]
+```
+
+It merges the profiles into a flat config, slices a real cylinder with the
+PrusaSlicer CLI, and asserts on the G-code: macros present with **numeric**
+arguments, no `M204` / `SET_VELOCITY_LIMIT` / `M201` / `M203` / `M200` /
+temperature / fan / retraction, E in mm³ matching the computed bead, and peak
+flow inside the ceiling.
+
+**It has already caught three defects that inspection missed** — see §11. Sweep
+the whole matrix, not one combination: the over-flow first layer only appeared at
+the loosest ratio, because the tighter ceilings were hiding it.
+
+Open: the bed is 200 × 200 × 300 until the Y endstop question in §12 is settled.
+Everything else is measured, or reproduced from the test that has actually run.
+
+---
+
 ## 11. What has already gone wrong
 
 Every one of these looked correct when it was deployed. Read before proposing a
@@ -421,6 +532,9 @@ fix that resembles any of them.
 | Shortening the jog chunk to cut run-on | run-on went from 0.34 s to 1.1 s | more, shorter chunks deepen the queue (gotchas §3) |
 | Five changes deployed in one batch | machine worse overall, whole batch reverted | one change at a time, with a print in between |
 | Derating a measured ceiling 20% unasked | operator: "why did you mention 38, I told you 50" | do not add safety margin to someone else's measurement |
+| `CLAY_PRINT_LIMITS` in the slicer's `layer_gcode` behind `{if layer_num == 0}` | the command was absent from every sliced file, silently | `layer_gcode` is not emitted for the first layer at all (gotchas §16) |
+| Relative E without `G92 E0` in `layer_gcode` | PrusaSlicer produced no output whatsoever | it refuses to slice, not warn |
+| A flat 15 mm/s first layer across all nozzles | 167 mm³/s on the 6 mm bead, 1.7× the design flow | only visible at the loosest ratio — the tighter flow ceilings were masking it |
 | Driving the touchscreen with synthetic taps while the operator was at it | values drifting, modes refusing to stay set — looked exactly like bugs | it was their hand on the screen (gotchas §10c) |
 
 **The pattern worth internalising:** on this machine the arithmetic is usually
@@ -431,7 +545,7 @@ ratio, or exactly one state, grep for every use of the thing that moved.
 
 ---
 
-## 10. Still unmeasured / open
+## 12. Still unmeasured / open
 
 - **`auger_motor_max_rpm` = 300 is a bracket, not a measurement.** The screw is
   known to work at 269 RPM and to stall at 643; the truth is somewhere between.

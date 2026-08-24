@@ -545,3 +545,129 @@ exactly one motor revolution, whatever the configured value happens to be. Then:
   `full_steps_per_rotation` (200 vs 400 — a 0.9° motor makes every derived figure
   wrong by exactly 2×), `microsteps`, and that the coupling really is 1:1. It is
   a different question from how much material moved, and worth its own test.
+
+---
+
+## 16. Slicing for a volumetric or paste extruder
+
+Everything here was found configuring PrusaSlicer 2.9.6 for a clay printer whose
+E axis is volumetric (1 E mm = 1 mm³ out of the nozzle). Most of it applies to
+any machine whose extruder is a pump, a screw or a syringe rather than a hotend.
+
+### Make the slicer's E match the machine, with a fake filament diameter
+
+Slicers emit E in linear mm of filament. If the machine's E is mm³, declare a
+filament whose cross-section is exactly 1 mm²:
+
+```
+area = pi/4 * d^2 = 1   ->   d = sqrt(4/pi) = 1.128379 mm
+```
+
+Then one mm of "filament" **is** one mm³ and no conversion is needed anywhere.
+Three side benefits: the slicer's material statistics stay correct (it computes
+volume as length × area), `filament_max_volumetric_speed` becomes a direct
+statement of the pump's ceiling in mm³/s, and the numbers in the G-code are
+readable against the machine's own units.
+
+This is better than the slicer's own "volumetric E" option, which is not present
+everywhere and interacts with firmware `M200`.
+
+### `filament_max_volumetric_speed` is the right home for a flow ceiling
+
+A pump has a hard flow limit; a hotend has a soft one. Put the limit there, in
+mm³/s, and the slicer slows every move to fit — including the time estimate,
+which is otherwise a fiction. Do not translate it into a speed by hand: the speed
+that respects it changes with every bead cross-section.
+
+Design a profile with **two ceilings in series** — a *design flow* (what the
+process wants) and the *machine flow* (what the pump can pass). Whichever is
+lower wins, and neither has to know about the other.
+
+### Slicer-side acceleration control silently overwrites firmware limits
+
+This is the one that bites hardest when the firmware is enforcing something.
+PrusaSlicer writes an acceleration before every feature — `M204` under Marlin
+flavours, **`SET_VELOCITY_LIMIT` under the Klipper flavour** — which overwrites
+whatever the firmware had set. Any scheme where a macro caps acceleration to
+protect a motor is defeated by it, mid-print, invisibly.
+
+Set every `*_acceleration` to **0**, which in PrusaSlicer means *do not emit*.
+Also set `machine_limits_usage = time_estimate_only` so `M201`/`M203` stay out of
+the file. Then audit the output for both — see the harness below.
+
+Corollary: **prefer the `marlin` flavour over `klipper` on a Klipper machine** if
+firmware macros own the velocity limits, precisely because the Klipper flavour
+emits the same command the macros use. Klipper's own documentation recommends
+Marlin anyway.
+
+### `layer_gcode` is NOT emitted for the first layer
+
+Verified by slicing: the first `G92 E0` from `layer_gcode` lands at the **second**
+layer change. So the common idiom
+
+```
+{if layer_num == 0}DO_SOMETHING_ONCE{endif}
+```
+
+placed in "After layer change G-code" **never fires**, and does so silently — the
+command is simply absent from every file. Anything that must happen once at the
+start belongs in `start_gcode`.
+
+If it must happen *after* the first Z move (for example arming a limit that would
+otherwise slow that move), do the Z move yourself at the end of `start_gcode`:
+
+```
+G1 Z{first_layer_height} F6000
+ARM_THE_LIMIT
+```
+
+The slicer's own first-layer Z move is then already satisfied and costs nothing.
+
+### Relative E requires `G92 E0` in `layer_gcode` — it refuses to slice otherwise
+
+> Relative extruder addressing requires resetting the extruder position at each
+> layer to prevent loss of floating point accuracy. Add "G92 E0" to layer_gcode.
+
+Not advisory: PrusaSlicer produces no output at all. It also matters more than
+usual with volumetric E, where the accumulated value reaches tens of thousands.
+
+### A fixed-bore nozzle must use the classic perimeter generator
+
+Arachne varies extrusion width to fit thin features. A pump feeding a fixed bore
+cannot vary its bead width, so a varying width becomes a varying flow that the
+machine's ceiling was never told about. `perimeter_generator = classic`.
+
+### Pin off anything that needs a firmware section you do not have
+
+- `arc_fitting` emits `G2`/`G3`, which needs Klipper's `[gcode_arcs]`
+- `gcode_label_objects` emits `EXCLUDE_OBJECT_*` or `M486`, which needs
+  `[exclude_object]`
+
+Both abort the print on an unknown command. They are usually already off — pin
+them anyway, so enabling one later is deliberate rather than a default drifting
+in on an upgrade.
+
+### Validate by slicing, not by reading
+
+A config bundle can be syntactically perfect and still wrong in ways only the
+output shows. Automate it: merge the profiles into a flat config, slice a real
+object with the slicer's CLI, and assert on the G-code —
+
+- the custom macros are present, with **numeric** arguments (an unevaluated
+  expression shows up as an empty or literal value)
+- **no** `M204`, `SET_VELOCITY_LIMIT`, `M201`, `M203`, `M200`, temperature, fan
+  or retraction commands
+- **E is in the expected unit**: measure mm³ per mm of travel from the file and
+  compare against the profile's computed bead
+- **peak flow does not exceed the ceiling**, computed from the file's own E,
+  distances and feedrates
+
+`agent-data/machines/mandel/slicer/validate.py` is a working example. Both
+first-layer bugs above, and a first-layer speed 1.7× over the design flow, were
+found by running the matrix — none were visible by inspection.
+
+### Sweep the whole matrix, not one combination
+
+The over-flow first layer only appeared at the *loosest* ratio, because the
+tighter ceilings were masking it. Run every nozzle against every flow ceiling: a
+limit that is doing its job hides the errors underneath it.

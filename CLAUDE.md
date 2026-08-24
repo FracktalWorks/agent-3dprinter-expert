@@ -77,6 +77,15 @@ several were wrong in expensive ways. Its live files are snapshotted in
 git repo. Run `python agent-data/machines/mandel/sync.py --check` before editing
 them: the printer is the source of truth, not the snapshot.
 
+**Slicing for MANDEL** — PrusaSlicer, configured in
+`agent-data/machines/mandel/slicer/`. E is volumetric (1 E mm = 1 mm³), so the
+profiles use `filament_diameter = 1.128379` and carry the auger's flow ceiling as
+`filament_max_volumetric_speed`; every `*_acceleration` is 0 so the slicer cannot
+overwrite the machine's own speed cap. **Run
+`python agent-data/machines/mandel/slicer/validate.py` after any profile change**
+— it slices a real object and asserts on the G-code. General slicer findings for
+volumetric/paste extruders are in `agent-data/klipper_motion_gotchas.md` §16.
+
 ## Environment
 
 - Python deps: `pip install -r requirements.txt` (paramiko needed for SSH scripts)

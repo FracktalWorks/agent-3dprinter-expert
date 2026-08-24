@@ -42,6 +42,7 @@ and the open questions on each specific printer.
 | Path | Description |
 |------|-------------|
 | `machines/mandel_clay_printer.md` | **MANDEL (IISc clay printer)** — plunger→auger clay extruder at 192.168.0.34. The volumetric E model (1 E mm = 1 mm³ out), the Plunger:Auger balance, measured drivetrain and motor ceilings, the print-speed cap, the clay touchscreen panel, and a log of everything that has already been tried and failed. **Read §11 before proposing a fix** |
+| `machines/mandel/slicer/` | **PrusaSlicer config bundle for MANDEL** — 3/4/5/6 mm nozzles and three Plunger:Auger ratios, with the volumetric-E setup (`filament_diameter = 1.128379` so 1 E mm = 1 mm³) and the auger's flow ceiling as `filament_max_volumetric_speed`. Includes the reasoning for PrusaSlicer over Cura |
 | `machines/mandel/` | **Snapshot of MANDEL's live files** — `printer.cfg`, `clay_macros.cfg` (59 KB of clay macros) and `clay.py` (the KlipperScreen panel, which exists in no other repo), plus `sync.py` to diff/pull/push against the machine. Run `sync.py --check` before editing: the printer is the source of truth |
 
 | File | Description |
