@@ -25,6 +25,9 @@ when debugging motion or extrusion.
    those two.
 5. **Slicing is §10.** PrusaSlicer, and `validate.py` must be run after any
    profile change — it slices a real object and asserts on the G-code.
+6. **Going to the machine in person?** `mandel/COMMISSIONING.md` is the field
+   procedure — measuring the true build volume, correcting the axis limits, and
+   commissioning the slicer.
 
 Current state, 2026-08-24: 16 microsteps both motors, auger ceiling **307 RPM**
 (measured), print-speed cap armed by the g-code and tracking the live ratio,

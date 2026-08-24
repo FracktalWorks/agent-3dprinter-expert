@@ -15,6 +15,7 @@ The machine at `192.168.0.34` is authoritative; these exist so that:
 | `config/clay_macros.cfg` | `~/printer_data/config/clay_macros.cfg` | the entire clay layer; `[idle_timeout]`, `[save_variables]`, the `RESUME` override |
 | `panels/clay.py` | `~/KlipperScreen/panels/clay.py` | **this file exists in no other git repo** — KlipperScreen is a plain clone and the panel is untracked there |
 | `gcode/gen_cylinder.py` | *(nowhere — runs on the workstation)* | generates the test cylinder; the only g-code author that knows the volumetric convention |
+| `COMMISSIONING.md` | *(procedure)* | step-by-step field plan: measure the build volume, correct the axis limits, set up the slicer, acceptance print |
 | `klipperscreen/` | `~/KlipperScreen` + `KlipperScreen.conf` | the four locally-patched upstream files, as a diff — **a KlipperScreen update destroys them**. See its README |
 | `slicer/` | *(the workstation)* | PrusaSlicer config bundle for the 3/4/5/6 mm nozzles, and why PrusaSlicer rather than Cura. See its README |
 
