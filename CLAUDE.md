@@ -65,6 +65,18 @@ toggled by commenting/uncommenting includes — never edit included files.
 Full details: `AGENTS.md`, `.github/prompts/system.md`,
 `agent-data/INDEX.md` (reference data index).
 
+**Before debugging flow, stop-latency or "the commanded rate is never achieved":**
+read `agent-data/klipper_motion_gotchas.md`. Per-machine notes (measured
+calibration, custom macros, open questions) live in `agent-data/machines/`.
+
+**MANDEL (IISc clay printer, 192.168.0.34)** — read
+`agent-data/machines/mandel_clay_printer.md` **§11 "What has already gone wrong"
+before proposing any fix**; most plausible changes there have been tried and
+several were wrong in expensive ways. Its live files are snapshotted in
+`agent-data/machines/mandel/` — including `clay.py`, which exists in no other
+git repo. Run `python agent-data/machines/mandel/sync.py --check` before editing
+them: the printer is the source of truth, not the snapshot.
+
 ## Environment
 
 - Python deps: `pip install -r requirements.txt` (paramiko needed for SSH scripts)

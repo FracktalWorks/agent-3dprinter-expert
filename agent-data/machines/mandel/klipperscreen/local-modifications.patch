@@ -1,0 +1,84 @@
+diff --git a/ks_includes/config.py b/ks_includes/config.py
+index 9eddbf8..3a4f4b2 100644
+--- a/ks_includes/config.py
++++ b/ks_includes/config.py
+@@ -250,6 +250,7 @@ class KlipperScreenConfig:
+                     "extrude_speeds",
+                     "move_distances",
+                     "zcalibrate_custom_commands",
++                    "clay_speeds",
+                 )
+                 numbers = (
+                     "moonraker_port",
+diff --git a/panels/base_panel.py b/panels/base_panel.py
+index 0f43fde..7d6734e 100644
+--- a/panels/base_panel.py
++++ b/panels/base_panel.py
+@@ -270,6 +270,13 @@ class BasePanel(ScreenPanel):
+                 elif device.startswith("heater"):
+                     self.control["item_box"].add(self.titlebar_labels[f"{device}_eventbox"])
+                     n += 1
++            for device in devices:
++                name = device.split()[1] if len(device.split()) > 1 else device
++                if name.lower() == "co2_chamber" and f"{device}_eventbox" in self.titlebar_labels:
++                    if self.titlebar_labels[f"{device}_eventbox"].get_parent() is None:
++                        self.control["item_box"].add(self.titlebar_labels[f"{device}_eventbox"])
++                        n += 1
++                        break
+             for item in self.titlebar_items:
+                 # Users can fill the bar if they want
+                 if n >= nlimit + 1:
+@@ -506,8 +513,7 @@ class BasePanel(ScreenPanel):
+                     elif self.titlebar_name_type == "short":
+                         name = device.split()[1] if len(device.split()) > 1 else device
+                         name = f"{name[:1].upper()}: "
+-                self.titlebar_labels[device].set_label(f"{name}{temp:.0f}°")
+-
++                        self.titlebar_labels[device].set_label(f"{name}{temp:.0f}{' PPM' if 'co2' in device.lower() else '°'}")
+         if (
+             self.current_extruder
+             and "toolhead" in data
+diff --git a/panels/main_menu.py b/panels/main_menu.py
+index f702390..7e15359 100644
+--- a/panels/main_menu.py
++++ b/panels/main_menu.py
+@@ -238,7 +238,7 @@ class Panel(MenuPanel):
+         self.labels["devices"].get_style_context().add_class("heater-grid")
+ 
+         name = Gtk.Label()
+-        temp = Gtk.Label(label=_("Temp (°C)"))
++        temp = Gtk.Label(label=_("CO2 (ppm)"))
+ 
+         self.labels["devices"].attach(name, 0, 0, 1, 1)
+         self.labels["devices"].attach(temp, 1, 0, 1, 1)
+diff --git a/panels/temperature.py b/panels/temperature.py
+index c004663..4f9fdb6 100644
+--- a/panels/temperature.py
++++ b/panels/temperature.py
+@@ -18,7 +18,7 @@ class Panel(ScreenPanel):
+     active_heater = None
+ 
+     def __init__(self, screen, title, **kwargs):
+-        title = title or _("Temperature")
++        title = title or _("CO2")
+         super().__init__(screen, title)
+         self.left_panel = None
+         self.devices = {}
+@@ -118,7 +118,7 @@ class Panel(ScreenPanel):
+         else:
+             deltagrid.attach(self.labels["decrease"], 0, 1, 1, 3)
+             deltagrid.attach(self.labels["increase"], 1, 1, 1, 3)
+-            deltagrid.attach(Gtk.Label(_("Temperature") + " (°C)"), 0, 4, 2, 1)
++            deltagrid.attach(Gtk.Label(_("CO2") + " (ppm)"), 0, 4, 2, 1)
+             deltagrid.attach(tempgrid, 0, 5, 2, 2)
+         return deltagrid
+ 
+@@ -493,7 +493,7 @@ class Panel(ScreenPanel):
+         self.labels["devices"].get_style_context().add_class("heater-grid")
+ 
+         name = Gtk.Label()
+-        temp = Gtk.Label(_("Temp (°C)"))
++        temp = Gtk.Label(_("CO₂ (ppm)"))
+ 
+         self.labels["devices"].attach(name, 0, 0, 1, 1)
+         self.labels["devices"].attach(temp, 1, 0, 1, 1)

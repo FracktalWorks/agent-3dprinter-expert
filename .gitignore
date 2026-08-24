@@ -54,3 +54,6 @@ graphify-out/
 
 # Don't ignore .vscode - we want the settings
 !.vscode/
+
+# Personal skill-observation log (task-observer meta-skill) — not team content
+skill-observations/

@@ -1,0 +1,85 @@
+{
+  "env": {
+    "PYTHONIOENCODING": "utf-8",
+    "PYTHONUTF8": "1"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(python .github/skills/3d-printer-expert/scripts/klipper_error_lookup.py:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/peripheral_lookup.py:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/print_quality_analyzer.py:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/klipper_log_parser.py:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/klipper_docs.py:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/controlcenter_reference.py:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/firmware_analyzer.py:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/visualize_data.py:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/pi_system_diagnostics.py:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/display_diagnostics.py:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/mainsail_diagnostics.py:*)",
+
+      "Bash(python .github/skills/3d-printer-expert/scripts/moonraker_api.py --action diagnose:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/moonraker_api.py --action temps:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/moonraker_api.py --action klippy-state:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/moonraker_api.py --action info:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/moonraker_api.py --action server:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/moonraker_api.py --action print-status:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/moonraker_api.py --action sysinfo:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/moonraker_api.py --action proc-stats:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/moonraker_api.py --action objects-list:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/moonraker_api.py --action config:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/moonraker_api.py --action gcode-history:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/moonraker_api.py --action history:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/moonraker_api.py --action temp-store:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/moonraker_api.py --action query:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/moonraker_api.py --action files:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/moonraker_api.py --action update-status:*)",
+
+      "Bash(python .github/skills/3d-printer-expert/scripts/octoprint_api.py --action status:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/octoprint_api.py --action connection:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/octoprint_api.py --action version:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/octoprint_api.py --action settings:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/octoprint_api.py --action system:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/octoprint_api.py --action profiles:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/octoprint_api.py --action logs:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/octoprint_api.py --action files:*)",
+
+      "Bash(python .github/skills/klipper-knowledge-graph/scripts/graphify_kb.py --check:*)",
+      "Bash(python .github/skills/klipper-knowledge-graph/scripts/graphify_kb.py --status:*)",
+      "Bash(python .github/skills/klipper-knowledge-graph/scripts/graphify_kb.py --query:*)",
+      "Bash(python .github/skills/klipper-knowledge-graph/scripts/graphify_kb.py --explain:*)",
+      "Bash(python .github/skills/klipper-knowledge-graph/scripts/graphify_kb.py --path:*)",
+      "Bash(python .github/skills/klipper-knowledge-graph/scripts/klipper_source_manager.py --status:*)",
+      "Bash(python .github/skills/klipper-knowledge-graph/scripts/klipper_source_manager.py --locate-error:*)",
+      "Bash(python .github/skills/klipper-knowledge-graph/scripts/klipper_source_manager.py --grep:*)",
+      "Bash(python .github/skills/klipper-knowledge-graph/scripts/klipper_source_manager.py --show:*)",
+      "Bash(python .github/skills/klipper-knowledge-graph/scripts/klipper_kb_scraper.py --stats:*)",
+
+      "Bash(python -m pytest:*)",
+      "Bash(python --version)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)"
+    ],
+    "ask": [
+      "Bash(python .github/skills/3d-printer-expert/scripts/remote_config_editor.py:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/ssh_manager.py:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/live_printer_diagnostics.py:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/octoprint_websocket_client.py:*)",
+      "Bash(python .github/skills/3d-printer-expert/scripts/klipper_websocket_client.py:*)",
+      "Bash(python .github/skills/klipper-knowledge-graph/scripts/graphify_kb.py --build:*)",
+      "Bash(python .github/skills/klipper-knowledge-graph/scripts/graphify_kb.py --update:*)",
+      "Bash(python .github/skills/klipper-knowledge-graph/scripts/graphify_kb.py --serve:*)",
+      "Bash(python .github/skills/klipper-knowledge-graph/scripts/klipper_kb_scraper.py --source:*)",
+      "Bash(python .github/skills/klipper-knowledge-graph/scripts/klipper_source_manager.py --clone:*)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./credentials.json)",
+      "Read(./token.json)",
+      "Read(./**/*.pem)",
+      "Read(./**/*.key)"
+    ]
+  }
+}

@@ -76,7 +76,21 @@ claude
 ```
 
 `CLAUDE.md` gives Claude Code the same SOPs, skills, and scripts as the
-Copilot agent.
+Copilot agent. Slash commands wrap the documented SOP:
+
+| Command | What it does |
+|---------|--------------|
+| `/printer-triage <symptom>` | Full SOP: triage → klippy.log → error lookup → power check → one fix |
+| `/klippy-log [days]` | Parse klippy.log and explain every error found |
+| `/printer-error "<message>"` | Explain one error exactly, escalating DB → graph → source |
+| `/printer-health [host]` | Read-only sweep of Pi, Moonraker, Mainsail, and display |
+| `/kg "<question>"` | Query the Graphify knowledge graph for community fixes |
+
+`.claude/settings.json` pre-approves the read-only diagnostics so they run
+without prompting, and deliberately still asks before anything that can change
+the printer — `remote_config_editor.py`, `ssh_manager.py`, G-code sends, and
+job control. It also sets `PYTHONIOENCODING=utf-8`, which Windows needs or the
+scripts crash on their ✓/── output characters.
 
 ## Manual Setup
 
@@ -119,6 +133,8 @@ agent-3dprinter-expert/
 │       └── klipper-knowledge-graph/ # Graphify graph + scraper + source manager
 ├── .claude/
 │   ├── agents/3d-printer-expert.md  # Claude Code subagent
+│   ├── commands/            # Slash commands (/printer-triage, /klippy-log, ...)
+│   ├── settings.json        # UTF-8 env + permission policy for the scripts
 │   └── skills/              # Claude Code skill wrappers
 ├── agent-data/              # Curated references (error DB, hardware, print quality)
 │   └── knowledge-base/      # Scraped corpus (generated, gitignored)
