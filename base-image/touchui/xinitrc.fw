@@ -1,0 +1,12 @@
+#!/bin/sh
+# Fracktal touchscreen session. Installed as ~/.xinitrc by touchui/install-touchui.sh.
+# Runs ControlCenter with the OctoPrint venv's Python (which sees apt's PyQt5/OpenCV and
+# the pip packages ControlCenter needs), in the plugin directory because it uses relative imports.
+VENV=/home/pi/OctoPrint/venv
+xset s off      # no screensaver
+xset -dpms      # no display power-off
+xset s noblank
+CC_DIR=$("$VENV/bin/python" -c 'import os, octoprint_ControlCenter as m; print(os.path.dirname(m.__file__))') || {
+    echo "fw-touchui: octoprint_ControlCenter is not installed in $VENV" >&2; sleep 30; exit 1; }
+cd "$CC_DIR" || exit 1
+exec "$VENV/bin/python" main.py

@@ -1,0 +1,12 @@
+# Fracktal boot splash: black background, centred logo scaled to at most 60% of the screen width.
+Window.SetBackgroundTopColor(0, 0, 0);
+Window.SetBackgroundBottomColor(0, 0, 0);
+logo.image = Image("logo.png");
+max_w = Window.GetWidth() * 0.6;
+if (logo.image.GetWidth() > max_w) {
+    scale = max_w / logo.image.GetWidth();
+    logo.image = logo.image.Scale(logo.image.GetWidth() * scale, logo.image.GetHeight() * scale);
+}
+logo.sprite = Sprite(logo.image);
+logo.sprite.SetX(Window.GetX() + (Window.GetWidth() - logo.image.GetWidth()) / 2);
+logo.sprite.SetY(Window.GetY() + (Window.GetHeight() - logo.image.GetHeight()) / 2);

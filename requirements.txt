@@ -7,6 +7,7 @@ google-auth-oauthlib
 openai
 paramiko
 pyserial
+pyyaml
 python-dotenv
 requests
 websocket-client

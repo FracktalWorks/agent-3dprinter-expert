@@ -10,10 +10,12 @@
 #   --nftables         install the port-80 -> 5000 redirect rules (loopback-only output rule)
 #   --hold-kernel      apt-mark hold the Raspberry Pi kernel packages
 #   --ext4-remount-ro  tune2fs -e remount-ro on the root device
+#   --lock-rootfs      ENABLE fw-lock-rootfs.service (root+boot become read-only after commissioning; only for the
+#                      production image, needs the FWDATA partition -- see README section 9). Scripts are always installed.
 # Idempotent: safe to run repeatedly. Docs: base-image/README.md
 set -eu
 
-FW_USER=pi; BOOT_TUNING=0; NFT=0; HOLD=0; EXT4=0
+FW_USER=pi; BOOT_TUNING=0; NFT=0; HOLD=0; EXT4=0; LOCK=0
 while [ $# -gt 0 ]; do
     case "$1" in
         --user) FW_USER=$2; shift ;;
@@ -21,6 +23,7 @@ while [ $# -gt 0 ]; do
         --nftables) NFT=1 ;;
         --hold-kernel) HOLD=1 ;;
         --ext4-remount-ro) EXT4=1 ;;
+        --lock-rootfs) LOCK=1 ;;
         *) echo "unknown option $1" >&2; exit 2 ;;
     esac; shift
 done
@@ -64,6 +67,13 @@ if [ ! -f /etc/fw/auto-updates ]; then   # never flip an existing unit's choice
 fi
 put 0644 etc/systemd/system/apt-daily-upgrade.timer.d/fw-window.conf
 systemctl daemon-reload
+
+# --- commissioning + read-only-root helpers (installed, NOT enabled) -----------
+put 0755 usr/local/sbin/fw-commission
+put 0755 usr/local/sbin/fw-lock-rootfs
+put 0644 etc/systemd/system/fw-lock-rootfs.service
+systemctl daemon-reload
+if [ "$LOCK" = 1 ]; then systemctl enable fw-lock-rootfs.service; log "fw-lock-rootfs ENABLED: root goes read-only after commissioning"; fi
 
 # --- SSH hardening (password login stays ON) -------------------------------
 if grep -qE '^\s*Include\s+/etc/ssh/sshd_config.d/' /etc/ssh/sshd_config && id "$FW_USER" >/dev/null 2>&1; then
