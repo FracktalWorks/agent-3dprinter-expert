@@ -1,0 +1,35 @@
+#!/bin/sh
+# fw-updates: per-printer switch for automatic Debian security updates.
+# Default is OFF. Never reboots the printer; kernel + Raspberry Pi repo are excluded
+# (see /etc/apt/apt.conf.d/52fw-unattended-upgrades).
+#   fw-updates status | on | off | dry-run | run-now
+set -eu
+CONF=/etc/apt/apt.conf.d/20auto-upgrades
+FLAG=/etc/fw/auto-updates
+
+need_root() { [ "$(id -u)" -eq 0 ] || { echo "run with sudo" >&2; exit 1; }; }
+
+set_periodic() {  # $1 = 1|0
+    need_root
+    mkdir -p /etc/fw
+    cat > "$CONF" <<EOF
+APT::Periodic::Update-Package-Lists "$1";
+APT::Periodic::Unattended-Upgrade "$1";
+EOF
+    [ "$1" = 1 ] && echo enabled > "$FLAG" || echo disabled > "$FLAG"
+}
+
+case "${1:-status}" in
+    on)       set_periodic 1; echo "automatic security updates: ON (no auto-reboot)" ;;
+    off)      set_periodic 0; echo "automatic security updates: OFF" ;;
+    status)
+        echo "switch:   $(cat "$FLAG" 2>/dev/null || echo 'unset (off)')"
+        grep -h Unattended-Upgrade "$CONF" 2>/dev/null || true
+        echo "pending:  $(apt-get -s upgrade 2>/dev/null | grep -c '^Inst') package(s) upgradable"
+        [ -f /var/run/reboot-required ] && echo "REBOOT REQUIRED (not done automatically)" || echo "reboot:   not required"
+        grep -h 'Packages that were upgraded' /var/log/unattended-upgrades/unattended-upgrades.log 2>/dev/null | tail -1 || true
+        ;;
+    dry-run)  need_root; unattended-upgrade --dry-run -d 2>&1 | tail -25 ;;
+    run-now)  need_root; unattended-upgrade -d 2>&1 | tail -25 ;;
+    *) echo "usage: fw-updates status|on|off|dry-run|run-now" >&2; exit 2 ;;
+esac

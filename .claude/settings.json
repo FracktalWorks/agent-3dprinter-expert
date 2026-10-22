@@ -3,6 +3,21 @@
     "PYTHONIOENCODING": "utf-8",
     "PYTHONUTF8": "1"
   },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/rtk-bash.sh\"",
+            "timeout": 10,
+            "statusMessage": "rtk: compressing output"
+          }
+        ]
+      }
+    ]
+  },
   "permissions": {
     "allow": [
       "Bash(python .github/skills/3d-printer-expert/scripts/klipper_error_lookup.py:*)",

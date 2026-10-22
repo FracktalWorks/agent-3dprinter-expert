@@ -1,0 +1,23 @@
+[Unit]
+Description=Fracktal Works health monitor (reports only, never powers off)
+After=local-fs.target
+
+[Service]
+User=pi
+SupplementaryGroups=adm video
+ExecStart=/usr/bin/python3 /usr/local/bin/fw-health
+RuntimeDirectory=fw-health
+RuntimeDirectoryMode=0755
+Restart=always
+RestartSec=5
+# stay off the Klipper core (isolcpus=3) and out of its way
+CPUAffinity=0-2
+Nice=10
+MemoryMax=64M
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

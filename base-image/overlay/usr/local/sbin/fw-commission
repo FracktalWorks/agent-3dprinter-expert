@@ -1,0 +1,111 @@
+#!/usr/bin/env python3
+"""First-boot commissioning of a Fracktal printer (run by cloud-init runcmd; safe to re-run).
+
+Reads /boot/firmware/fw-commission.json (written by base-image/provision.py) and:
+  1. activates the model's PRINTER_*.cfg in printer.cfg (exactly ONE [include PRINTER_*.cfg]);
+  2. gives this printer its own OctoPrint API key + secretKey (the golden image's are shared);
+  3. restarts octoprint so ControlCenter (which reads the key from config.yaml) and the UI agree;
+  4. writes /etc/fw/commissioned so it never runs twice. `--force` re-runs.
+Only the stdlib is used. Never touches CAN UUIDs/MCU serials: those are per-board, set by hand.
+"""
+import json
+import os
+import re
+import secrets
+import shutil
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+RECORD_CANDIDATES = ["/boot/firmware/fw-commission.json", "/boot/fw-commission.json"]
+MARKER = Path("/etc/fw/commissioned")
+USER_HOME = Path(os.environ.get("FW_HOME", "/home/pi"))
+CFG_CANDIDATES = [USER_HOME / "printer_data/config/printer.cfg", USER_HOME / "printer.cfg"]
+INCLUDE_RE = re.compile(r"^\s*#?\s*\[include\s+(PRINTER_[A-Za-z0-9_]+\.cfg)\]\s*$")
+
+
+def log(msg):
+    print(f"fw-commission: {msg}", flush=True)
+
+
+def select_include(text, wanted):
+    """Return printer.cfg text with exactly `wanted` active and every other PRINTER_* include commented."""
+    out, seen = [], False
+    for line in text.splitlines():
+        m = INCLUDE_RE.match(line)
+        if m:
+            if m.group(1) == wanted and not seen:
+                out.append(f"[include {wanted}]")
+                seen = True
+            else:
+                out.append(f"#[include {m.group(1)}]")
+        else:
+            out.append(line)
+    if not seen:
+        raise ValueError(f"printer.cfg has no '[include {wanted}]' line (model file missing from this config?)")
+    return "\n".join(out) + "\n"
+
+
+def rewrite_octoprint_secrets(config_path):
+    """Replace api.key and server.secretKey in place, keeping the rest of the file byte-for-byte."""
+    text = config_path.read_text(encoding="utf-8")
+    key, secret = secrets.token_hex(16).upper(), secrets.token_urlsafe(24)
+
+    def put(text, section, name, value):
+        pat = re.compile(rf"(^{section}:\n(?:[ \t]+.*\n|\n)*?[ \t]+{name}:[ \t]*).*$", re.M)
+        if pat.search(text):
+            return pat.sub(lambda m: m.group(1) + value, text, count=1)
+        sec = re.compile(rf"^{section}:[ \t]*\n", re.M)
+        if sec.search(text):
+            return sec.sub(lambda m: m.group(0) + f"  {name}: {value}\n", text, count=1)
+        return text.rstrip("\n") + f"\n{section}:\n  {name}: {value}\n"
+
+    text = put(text, "api", "key", key)
+    text = put(text, "server", "secretKey", secret)
+    config_path.write_text(text, encoding="utf-8")
+    return key
+
+
+def main(argv):
+    force = "--force" in argv
+    if MARKER.exists() and not force:
+        log("already commissioned (use --force to redo)")
+        return 0
+    rec_path = next((Path(p) for p in RECORD_CANDIDATES if Path(p).exists()), None)
+    if rec_path is None:
+        log("no fw-commission.json on the boot partition; nothing to do")
+        return 0
+    rec = json.loads(rec_path.read_text(encoding="utf-8"))
+    log(f"serial {rec['serial']}, model {rec['model']} ({rec['printer_cfg_include']})")
+
+    cfg = next((p for p in CFG_CANDIDATES if p.exists()), None)
+    if cfg is None:
+        log(f"ERROR: no printer.cfg in {[str(p) for p in CFG_CANDIDATES]}")
+        return 1
+    shutil.copy2(cfg, cfg.with_name(cfg.name + f".pre-commission-{time.strftime('%Y%m%d-%H%M%S')}"))
+    try:
+        cfg.write_text(select_include(cfg.read_text(encoding="utf-8"), rec["printer_cfg_include"]), encoding="utf-8")
+    except ValueError as e:
+        log(f"ERROR: {e}")
+        return 1
+    log(f"{cfg}: activated {rec['printer_cfg_include']}")
+
+    oc = USER_HOME / ".octoprint/config.yaml"
+    if oc.exists():
+        rewrite_octoprint_secrets(oc)
+        os.chmod(oc, 0o600)
+        log("OctoPrint API key and secretKey regenerated for this printer")
+        subprocess.run(["systemctl", "restart", "octoprint"], check=False)
+    else:
+        log("no OctoPrint config.yaml yet (installer seeds a unique key on first install)")
+    subprocess.run(["systemctl", "restart", "klipper"], check=False)
+
+    MARKER.parent.mkdir(parents=True, exist_ok=True)
+    MARKER.write_text(json.dumps({**rec, "at": time.strftime("%Y-%m-%dT%H:%M:%S%z")}, indent=2) + "\n")
+    log("done")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

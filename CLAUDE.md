@@ -33,6 +33,7 @@ same agent runs in GitHub Copilot (VS Code) via `.github/agents/3d-printer-exper
 | Knowledge graph (community fixes, error relations) | `graphify_kb.py --query "..."` |
 | Klipper source (where/why an error is raised) | `klipper_source_manager.py --locate-error "..."` |
 | ControlCenter (PyQt5 touchscreen app) | `controlcenter_reference.py --query "..."` |
+| Base OS image (Debian 13 hardening, fw-health, update policy, apply.sh) | `base-image/README.md`; `pi_system_diagnostics.py --check base-image` / `--check fw-health` |
 
 All debugging scripts live in `.github/skills/3d-printer-expert/scripts/` and
 `.github/skills/klipper-knowledge-graph/scripts/`. Claude Code skill wrappers
@@ -68,6 +69,12 @@ Full details: `AGENTS.md`, `.github/prompts/system.md`,
 **Before debugging flow, stop-latency or "the commanded rate is never achieved":**
 read `agent-data/klipper_motion_gotchas.md`. Per-machine notes (measured
 calibration, custom macros, open questions) live in `agent-data/machines/`.
+
+**Base OS image (Debian 13)** — new printers run the image described in
+`base-image/README.md` (read its debug runbook first). Older printers on Debian
+10-12 must keep working: read-only diagnostics stay version-tolerant, and any
+change to a printer is opt-in per `apply.sh` flag. Run `--check base-image` to
+see which generation you are on before assuming `fw-health`/`fw-updates` exist.
 
 **MANDEL (IISc clay printer, 192.168.0.34)** — read
 `agent-data/machines/mandel_clay_printer.md` **§11 "What has already gone wrong"

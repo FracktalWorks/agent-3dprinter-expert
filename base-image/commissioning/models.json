@@ -1,0 +1,16 @@
+{
+  "_comment": "Printer models a card can be commissioned as. `include` is the PRINTER_*.cfg that printer.cfg activates (ONE at a time). Source of truth for the files: klipper_IDEX/fracktal_config/templates (README there lists the same table).",
+  "models": {
+    "dragon-400":        {"name": "Dragon 400",        "include": "PRINTER_DRAGON_400.cfg",        "toolheads": 1},
+    "dragon-400-v2":     {"name": "Dragon 400 V2",     "include": "PRINTER_DRAGON_400_V2.cfg",     "toolheads": 1},
+    "dragon-500":        {"name": "Dragon 500",        "include": "PRINTER_DRAGON_500.cfg",        "toolheads": 1},
+    "volterra-alf":      {"name": "Volterra ALF",      "include": "PRINTER_VOLTERRA_ALF.cfg",      "toolheads": 1},
+    "twindragon-400-v1": {"name": "TwinDragon 400 V1", "include": "PRINTER_TWINDRAGON_400_V1.cfg", "toolheads": 2},
+    "twindragon-400-v2": {"name": "TwinDragon 400 V2", "include": "PRINTER_TWINDRAGON_400_V2.cfg", "toolheads": 2},
+    "twindragon-600-v1": {"name": "TwinDragon 600 V1", "include": "PRINTER_TWINDRAGON_600_V1.cfg", "toolheads": 2},
+    "twindragon-600-v2": {"name": "TwinDragon 600 V2", "include": "PRINTER_TWINDRAGON_600_V2.cfg", "toolheads": 2},
+    "twindragon-600x300": {"name": "TwinDragon 600x300", "include": "PRINTER_TWINDRAGON_600x300.cfg", "toolheads": 2},
+    "penrose-single":    {"name": "Penrose single",    "include": "PRINTER_PENROSE_SINGLE.cfg",    "toolheads": 1},
+    "penrose-dual":      {"name": "Penrose dual",      "include": "PRINTER_PENROSE_DUAL.cfg",      "toolheads": 2}
+  }
+}

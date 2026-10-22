@@ -1,0 +1,8 @@
+# Fracktal Works slim image: do not install translations (keep en/en_GB) or package docs.
+# Licence texts (copyright files) are kept for redistribution.
+path-exclude=/usr/share/locale/*
+path-include=/usr/share/locale/en/*
+path-include=/usr/share/locale/en_GB/*
+path-include=/usr/share/locale/locale.alias
+path-exclude=/usr/share/doc/*
+path-include=/usr/share/doc/*/copyright

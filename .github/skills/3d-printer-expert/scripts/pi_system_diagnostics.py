@@ -19,12 +19,15 @@ Usage:
     python pi_system_diagnostics.py --host 192.168.1.100 --check services
     python pi_system_diagnostics.py --host 192.168.1.100 --check boot-config
     python pi_system_diagnostics.py --host 192.168.1.100 --check journal
+    python pi_system_diagnostics.py --host 192.168.1.100 --check fw-health    # Debian 13 base image only
+    python pi_system_diagnostics.py --host 192.168.1.100 --check base-image   # which generation/hardening
     python pi_system_diagnostics.py --failures
 """
 
 import argparse
 import json
 import os
+import re
 import sys
 
 DEFAULT_HOST = os.environ.get("PRINTER_SSH_HOST", "")
@@ -238,16 +241,26 @@ def check_can(client) -> dict:
                              "/etc/network/interfaces.d/can0 and that the Manta's "
                              "USB-to-CAN bridge is enumerated (lsusb).")
         return result
-    if "DOWN" in link:
-        result["verdict"] = "⚠ can0 exists but is DOWN — sudo ip link set can0 up type can bitrate 500000"
-    elif "bus-off" in link.lower() or "BUS-OFF" in link:
+    # Fleet bitrate varies by generation (500000 on older toolheads, 1000000 on the
+    # Debian 13 base image) -- report what the interface is actually using.
+    m = re.search(r"bitrate (\d+)", link)
+    bitrate = m.group(1) if m else "unknown"
+    result["bitrate"] = bitrate
+    if "state DOWN" in link or "<NOARP>" in link:
+        result["verdict"] = f"⚠ can0 exists but is DOWN — sudo ip link set can0 up type can bitrate {bitrate if bitrate != 'unknown' else 500000}"
+    elif re.search(r"can state BUS-OFF", link):  # not the 'bus-off' column header of the counters
         result["verdict"] = "⚠ BUS-OFF — wiring/termination fault; check 120Ω terminators"
     else:
-        result["verdict"] = "OK (verify bitrate 500000 matches firmware and error counters ≈ 0)"
-    uuids = run(client, "~/klippy-env/bin/python ~/klipper/scripts/canbus_query.py can0 "
-                        "2>/dev/null | head -5 || echo 'canbus_query unavailable "
-                        "(klipper must be stopped to query)'")
-    result["canbus_query"] = uuids
+        result["verdict"] = (f"OK at {bitrate} bit/s (verify this matches the MCU firmware "
+                             "CANBUS_FREQUENCY and error counters ≈ 0)")
+    # Klipper lives in ~/klipper on stock installs, ~/klipper_IDEX on the Fracktal fork.
+    uuids = run(client, "for d in ~/klipper_IDEX ~/klipper; do "
+                        "[ -f $d/scripts/canbus_query.py ] && "
+                        "~/klippy-env/bin/python $d/scripts/canbus_query.py can0 2>&1 | head -8 && break; "
+                        "done; true")
+    result["canbus_query"] = uuids or "canbus_query.py not found in ~/klipper_IDEX or ~/klipper"
+    result["hint"] = ("Compare canbus_query UUIDs with [mcu] canbus_uuid in printer.cfg -- "
+                      "a mismatch shows as 'Timeout on connect' in klippy.log")
     return result
 
 
@@ -294,6 +307,80 @@ def check_journal(client) -> dict:
     }
 
 
+def check_fw_health(client) -> dict:
+    """Read the fw-health service (Debian 13 base image). Older images don't have it."""
+    raw = run(client, "curl -s -m 5 http://127.0.0.1:8765/health 2>/dev/null")
+    try:
+        data = json.loads(raw)
+    except (ValueError, TypeError):
+        return {"installed": False,
+                "verdict": "fw-health not installed (older image) -- use --check power/thermal/storage instead"}
+    bad = {k: v for k, v in data.get("checks", {}).items() if v.get("level") != "ok"}
+    return {"installed": True, "level": data.get("level"), "not_ok": bad or "none",
+            "all_checks": data.get("checks"),
+            "recent_transitions": run(client, "journalctl -t fw-health --no-pager -n 15 2>/dev/null"),
+            "verdict": "OK" if data.get("level") == "ok" else f"⚠ {data.get('level')}: {', '.join(bad)}"}
+
+
+def check_base_image(client) -> dict:
+    """Identify the image generation and which base-image hardening is present."""
+    def has(path):
+        return run(client, f"test -e {path} && echo yes || echo no") == "yes"
+    return {
+        "os": run(client, "grep PRETTY_NAME /etc/os-release | cut -d= -f2"),
+        "kernel": run(client, "uname -r"),
+        "kernel_packages_held": run(client, "apt-mark showhold 2>/dev/null") or "(none)",
+        "boot_dir": "/boot/firmware" if has("/boot/firmware/config.txt") else "/boot",
+        "hardening_present": {
+            "sysctl": has("/etc/sysctl.d/99-fw-hardening.conf"),
+            "journald_cap": has("/etc/systemd/journald.conf.d/10-fw-journal.conf"),
+            "watchdog": has("/etc/systemd/system.conf.d/99-fw-watchdog.conf"),
+            "ssh_hardening": has("/etc/ssh/sshd_config.d/50-fw-hardening.conf"),
+            "fw_health": has("/usr/local/bin/fw-health"),
+            "auto_updates_flag": has("/etc/fw/auto-updates"),
+            "input_firewall": "fw_filter" in run(client, "sudo -n nft list tables 2>/dev/null"),
+        },
+        "auto_updates": run(client, "cat /etc/fw/auto-updates 2>/dev/null") or "not installed",
+        "machine_id_set": run(client, "test -s /etc/machine-id && echo yes || echo no-empty"),
+        "root_mount": run(client, "findmnt -no FSTYPE,OPTIONS / 2>/dev/null"),
+        "hw_watchdog_s": run(client, "cat /sys/class/watchdog/watchdog0/timeout 2>/dev/null") or "n/a",
+    }
+
+
+def check_octoprint(client) -> dict:
+    """Which OctoPrint generation runs here (legacy 1.7.x vs NextGen 1.11.x) and is it sane. Read-only."""
+    unit = run(client, "systemctl cat octoprint 2>/dev/null | sed -n 's/^ExecStart=//p' | head -1")
+    exe = unit.split()[0] if unit else ""
+    venv = exe.rsplit("/bin/", 1)[0] if "/bin/" in exe else ""
+    ver = run(client, f"{venv}/bin/python -c 'import octoprint;print(octoprint.__version__)' 2>/dev/null") if venv else ""
+    pyver = run(client, f"{venv}/bin/python -c 'import sys;print(sys.version.split()[0])' 2>/dev/null") if venv else ""
+    if not ver:
+        generation = "unknown (no octoprint.service / venv not found)"
+    elif ver.startswith("1.7."):
+        generation = "LEGACY 1.7.x fork (Fracktal_OctoPrint) -- correct only for old-generation printers"
+    elif ver.startswith("1.11."):
+        generation = "NextGen 1.11.x (Fracktal_OctoPrint_NextGen)"
+    else:
+        generation = f"other ({ver})"
+    base = "/home/pi/.octoprint"
+    cfg = run(client, f"grep -E '^(  key:|  firstRun:|  host:|  autologinLocal:|  allowCrossOrigin:|  port:)' {base}/config.yaml 2>/dev/null")
+    api_key_set = "  key:" in cfg
+    plugins = run(client, f"{venv}/bin/pip list 2>/dev/null | grep -i -E '^octoprint' ") if venv else ""
+    return {
+        "service_exec": unit or "(none)",
+        "venv": venv or "(none)",
+        "octoprint_version": ver or "(unknown)",
+        "python_in_venv": pyver or "(unknown)",
+        "generation": generation,
+        "api_key_configured": api_key_set,
+        "config_flags": cfg or "(config.yaml unreadable)",
+        "octoprint_packages": plugins or "(none)",
+        "old_venvs_kept": run(client, f"ls -d {venv}.old-* 2>/dev/null") or "(none)" if venv else "(n/a)",
+        "api_answers": run(client, "curl -s -m 5 -o /dev/null -w '%{http_code}' http://127.0.0.1:5000/api/version") + " (200 = open, 403 = needs key)",
+        "service_state": run(client, "systemctl is-active octoprint 2>/dev/null"),
+    }
+
+
 def print_failures(key: str = "") -> None:
     modes = {key: FAILURE_MODES[key]} if key in FAILURE_MODES else FAILURE_MODES
     for name, mode in modes.items():
@@ -317,6 +404,9 @@ CHECKS = {
     "services": check_services,
     "boot-config": check_boot_config,
     "journal": check_journal,
+    "fw-health": check_fw_health,
+    "base-image": check_base_image,
+    "octoprint": check_octoprint,
 }
 
 

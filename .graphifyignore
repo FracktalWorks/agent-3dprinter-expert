@@ -1,0 +1,6 @@
+# Index scoping for graphify (gitignore syntax).
+# Keep agent scripts/skills in the graph; skip bulk data and generated output.
+agent-data/knowledge-base/
+*.gcode
+*.log
+.tmp/

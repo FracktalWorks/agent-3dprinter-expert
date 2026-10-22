@@ -1,0 +1,154 @@
+#!/usr/bin/env python3
+"""fw-health: report Pi health (thermal, power, storage, CAN) without ever powering off.
+
+Writes /run/fw-health/status.json every INTERVAL seconds, serves it on
+127.0.0.1:8765/health, and logs a journal line on every level change so
+ControlCenter (or `journalctl -t fw-health`) can show a warning.
+Levels: ok < warn < critical. This service only reports; acting on a level
+(e.g. pausing a print) is the consumer's decision.
+"""
+import json, os, shutil, subprocess, threading, time
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+INTERVAL = 5
+STATUS = "/run/fw-health/status.json"
+PORT = 8765
+TEMP_WARN, TEMP_CRIT = 70.0, 80.0          # C; firmware soft-limit is temp_limit in config.txt
+DISK_WARN, DISK_CRIT = 15, 5               # percent free on /
+MEM_WARN, MEM_CRIT = 80, 40                # MiB available
+RANK = {"ok": 0, "warn": 1, "critical": 2}
+
+# vcgencmd get_throttled bits
+THROTTLE_BITS = {
+    0: ("undervoltage_now", "critical"), 1: ("freq_capped_now", "warn"),
+    2: ("throttled_now", "warn"), 3: ("soft_temp_limit_now", "warn"),
+    16: ("undervoltage_since_boot", "warn"), 17: ("freq_capped_since_boot", "ok"),
+    18: ("throttled_since_boot", "ok"), 19: ("soft_temp_limit_since_boot", "ok"),
+}
+
+
+def read(path, default=None):
+    try:
+        with open(path) as f:
+            return f.read().strip()
+    except OSError:
+        return default
+
+
+def run(cmd, timeout=5):
+    try:
+        return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout).stdout
+    except (OSError, subprocess.SubprocessError):
+        return ""
+
+
+def worst(a, b):
+    return a if RANK[a] >= RANK[b] else b
+
+
+def collect(state):
+    checks, level = {}, "ok"
+
+    def add(name, lvl, detail):
+        nonlocal level
+        checks[name] = {"level": lvl, "detail": detail}
+        level = worst(level, lvl)
+
+    raw = read("/sys/class/thermal/thermal_zone0/temp")
+    if raw:
+        t = int(raw) / 1000.0
+        add("temperature", "critical" if t >= TEMP_CRIT else "warn" if t >= TEMP_WARN else "ok", f"{t:.1f} C")
+
+    out = run(["vcgencmd", "get_throttled"]).strip()
+    if "=" in out:
+        val = int(out.split("=")[1], 16)
+        active = [(n, l) for b, (n, l) in THROTTLE_BITS.items() if val & (1 << b)]
+        lvl = "ok"
+        for _, l in active:
+            lvl = worst(lvl, l)
+        add("throttle_flags", lvl, {"raw": hex(val), "set": [n for n, _ in active]})
+
+    alarm = read("/sys/class/hwmon/hwmon1/in0_lcrit_alarm")
+    if read("/sys/class/hwmon/hwmon1/name") == "rpi_volt" and alarm is not None:
+        add("undervoltage_alarm", "critical" if alarm == "1" else "ok", f"in0_lcrit_alarm={alarm}")
+
+    du = shutil.disk_usage("/")
+    free = du.free * 100 // du.total
+    add("disk_free", "critical" if free <= DISK_CRIT else "warn" if free <= DISK_WARN else "ok", f"{free}% free")
+
+    mem = None
+    for line in (read("/proc/meminfo") or "").splitlines():
+        if line.startswith("MemAvailable:"):
+            mem = int(line.split()[1]) // 1024
+    if mem is not None:
+        add("memory_available", "critical" if mem <= MEM_CRIT else "warn" if mem <= MEM_WARN else "ok", f"{mem} MiB")
+
+    # PID 1's mount table: our own sandbox mounts / read-only
+    opts = next((l.split()[3] for l in (read("/proc/1/mounts") or "").splitlines() if l.split()[1:2] == ["/"]), "")
+    # An ext4 error remounts root read-only on errors=remount-ro; report it.
+    mounted_ro = "ro" in opts.split(",")
+    if state.get("root_was_ro") is None:
+        state["root_was_ro"] = mounted_ro
+    add("root_filesystem", "critical" if mounted_ro and not state["root_was_ro"] else "ok", opts or "unknown")
+
+    # Count kernel-reported storage errors since boot (checked once a minute; journalctl is slow-ish).
+    if time.time() - state.get("kmsg_at", 0) > 60:
+        state["kmsg_at"] = time.time()
+        log = run(["journalctl", "-k", "-b", "--no-pager", "-q"], timeout=20)
+        state["storage_errors"] = sum(1 for l in log.splitlines()
+                                      if any(k in l for k in ("EXT4-fs error", "I/O error", "mmc0: error", "Buffer I/O error")))
+    n = state.get("storage_errors", 0)
+    add("storage_errors", "critical" if n else "ok", f"{n} kernel storage error(s) since boot")
+
+    can_state = read("/sys/class/net/can0/operstate")
+    add("can0", "ok" if can_state in ("up", "unknown") else "warn", can_state or "absent")
+    return level, checks
+
+
+def main():
+    os.makedirs(os.path.dirname(STATUS), exist_ok=True)
+    latest = {"level": "ok", "checks": {}, "updated": 0}
+    lock = threading.Lock()
+
+    class H(BaseHTTPRequestHandler):
+        def do_GET(self):
+            if self.path.split("?")[0] not in ("/", "/health"):
+                self.send_error(404)
+                return
+            with lock:
+                body = json.dumps(latest).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *a):
+            pass
+
+    srv = HTTPServer(("127.0.0.1", PORT), H)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+
+    state, prev = {}, {}
+    while True:
+        level, checks = collect(state)
+        snap = {"level": level, "checks": checks, "updated": int(time.time())}
+        with lock:
+            latest.clear()
+            latest.update(snap)
+        tmp = STATUS + ".tmp"
+        with open(tmp, "w") as f:
+            json.dump(snap, f)
+        os.replace(tmp, STATUS)
+        for name, c in checks.items():
+            if c["level"] != prev.get(name):
+                if prev.get(name) is not None or c["level"] != "ok":
+                    pri = {"ok": "info", "warn": "warning", "critical": "crit"}[c["level"]]
+                    run(["logger", "-t", "fw-health", "-p", f"daemon.{pri}",
+                         f"{name} {prev.get(name, 'start')} -> {c['level']}: {c['detail']}"])
+                prev[name] = c["level"]
+        time.sleep(INTERVAL)
+
+
+if __name__ == "__main__":
+    main()
