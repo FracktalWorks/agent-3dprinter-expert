@@ -55,7 +55,7 @@ How it is wired and why:
 
 - `fw-touchui.service` runs as user `pi` on `tty1` with a login session (`PAMName=login`), so Xorg gets the display and touchscreen without root. It runs `startx /home/pi/.xinitrc -- :0 vt1 -nocursor`. It restarts X if the UI exits (`Restart=always`).
 - `~/.xinitrc` disables screen blanking, finds ControlCenter's folder with the **OctoPrint venv's** Python, `cd`s there (the app uses relative imports) and runs `main.py` with that Python. The venv is created with system packages visible, so apt's PyQt5/OpenCV are found.
-- The service creates `/etc/fw/touchui-managed`. ControlCenter's OctoPrint plugin normally rewrites `/etc/X11/xinit/xinitrc` and runs `sudo startx` every time OctoPrint starts; that would clash with the service and fail on a read-only root, so the plugin now skips it when that marker exists (ControlCenter branch `feat/octoprint-1.11-compat`).
+- The service creates `/etc/fw/touchui-managed`. ControlCenter's OctoPrint plugin normally rewrites `/etc/X11/xinit/xinitrc` and runs `sudo startx` every time OctoPrint starts; that would clash with the service and fail on a read-only root, so the plugin skips it when that marker exists (ControlCenter 1.1.8+).
 - Do **not** also start X from `~/.bash_profile`, an autologin getty, or a display manager. `touchui` lists any it finds (`inspect-ui` saved them too) and edits nothing; remove them by hand.
 
 **If the screen stays black or shows a console:**
@@ -87,9 +87,8 @@ The same pieces are baked into a golden image so each new printer only needs per
 
 ## 6. Updating a printer later
 
-> Until ControlCenter 1.1.8 and TwinDragonPrintRestore 1.0.6 are released, printers run the pre-release tags `1.1.8rc1` /
-> `1.0.6rc1`. If OctoPrint ever offers ControlCenter **1.1.7**, **decline it**: 1.1.7 cannot talk to a NextGen printer
-> (old fixed API key). See `docs/STATUS.md`, next steps 6-7.
+> NextGen printers need **ControlCenter >= 1.1.8** and **TwinDragonPrintRestore >= 1.0.6** (installed by default). Both
+> releases also work on old printers. Never install ControlCenter 1.1.7 or older on a NextGen printer (old fixed API key).
 
 
 | What | How |
