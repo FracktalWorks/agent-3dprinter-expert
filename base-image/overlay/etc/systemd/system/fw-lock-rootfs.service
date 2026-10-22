@@ -1,0 +1,12 @@
+[Unit]
+Description=Lock root filesystem read-only after commissioning (one-shot)
+After=cloud-final.service local-fs.target
+ConditionPathExists=/etc/fw/commissioned
+ConditionPathExists=!/etc/fw/rootfs-locked
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/fw-lock-rootfs
+
+[Install]
+WantedBy=multi-user.target

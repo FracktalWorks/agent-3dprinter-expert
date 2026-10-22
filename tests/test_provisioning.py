@@ -126,3 +126,22 @@ def test_rewrite_octoprint_secrets_adds_missing_sections(tmp_path):
     commission.rewrite_octoprint_secrets(p)
     d = yaml.safe_load(p.read_text())
     assert d["api"]["key"] and d["server"]["secretKey"]
+
+
+lock = _load("fw_lock", BASE / "overlay/usr/local/sbin/fw-lock-rootfs")
+
+
+def test_lock_fstab_sets_ro_on_root_and_boot_only():
+    fstab = ("PARTUUID=1-01  /boot/firmware  vfat  defaults  0  2\n"
+             "PARTUUID=1-02  /  ext4  defaults,noatime  0  1\n"
+             "LABEL=FWDATA  /fwdata  ext4  defaults,noatime,nofail  0  2\n"
+             "tmpfs /tmp tmpfs defaults 0 0\n")
+    out = lock.lock_fstab(fstab).splitlines()
+    assert out[0].split()[3] == "defaults,ro" and out[1].split()[3] == "defaults,noatime,ro"
+    assert out[2].split()[3] == "defaults,noatime,nofail" and "ro" not in out[3].split()[3]
+    once = lock.lock_fstab(fstab)
+    assert lock.lock_fstab(once) == once
+
+
+def test_lock_cmdline_replaces_rw():
+    assert lock.lock_cmdline("console=tty1 rw root=x resize\n") == "console=tty1 root=x resize ro\n"

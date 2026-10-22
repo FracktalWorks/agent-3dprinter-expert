@@ -1,0 +1,4 @@
+* text=auto
+*.sh text eol=lf
+base-image/overlay/** text eol=lf
+base-image/provision.py text eol=lf

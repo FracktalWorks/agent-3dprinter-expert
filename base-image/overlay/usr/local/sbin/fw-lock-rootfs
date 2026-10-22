@@ -1,0 +1,68 @@
+#!/usr/bin/env python3
+"""One-shot: after first-boot commissioning, make / and /boot/firmware read-only, then reboot once.
+
+Run by fw-lock-rootfs.service only when /etc/fw/commissioned exists and /etc/fw/rootfs-locked does not.
+Refuses to lock unless the FWDATA partition is mounted (otherwise /home, logs and Wi-Fi profiles
+would be on a read-only disk). Backs up fstab and cmdline.txt. `--dry-run` prints the result.
+Maintenance later: `fw-rw on` (remount rw until reboot). Docs: base-image/README.md section 9.4.
+"""
+import re
+import shutil
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+FSTAB = Path("/etc/fstab")
+CMDLINES = [Path("/boot/firmware/cmdline.txt"), Path("/boot/cmdline.txt")]
+MARKER = Path("/etc/fw/rootfs-locked")
+RO_MOUNTPOINTS = {"/", "/boot/firmware", "/boot"}
+
+
+def lock_fstab(text):
+    """Add 'ro' to the options of / and /boot[/firmware] entries (replacing any rw)."""
+    out = []
+    for line in text.splitlines():
+        f = line.split()
+        if len(f) >= 4 and not line.lstrip().startswith("#") and f[1] in RO_MOUNTPOINTS:
+            opts = [o for o in f[3].split(",") if o not in ("rw", "ro")]
+            f[3] = ",".join(opts + ["ro"])
+            line = "  ".join(f)
+        out.append(line)
+    return "\n".join(out) + "\n"
+
+
+def lock_cmdline(text):
+    words = [w for w in text.split() if w not in ("rw", "ro")]
+    return " ".join(words + ["ro"]) + "\n"
+
+
+def main(argv):
+    dry = "--dry-run" in argv
+    if MARKER.exists() and not dry:
+        print("already locked")
+        return 0
+    if subprocess.run(["findmnt", "-n", "/fwdata"], capture_output=True).returncode != 0 and not dry:
+        print("ERROR: /fwdata (FWDATA) is not mounted; refusing to lock the root filesystem", file=sys.stderr)
+        return 1
+    cmd = next((p for p in CMDLINES if p.exists()), None)
+    new_fstab = lock_fstab(FSTAB.read_text())
+    new_cmd = lock_cmdline(cmd.read_text()) if cmd else None
+    if dry:
+        print(new_fstab, new_cmd or "(no cmdline.txt)")
+        return 0
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    shutil.copy2(FSTAB, f"/etc/fstab.pre-lock-{stamp}")
+    FSTAB.write_text(new_fstab)
+    if cmd:
+        shutil.copy2(cmd, f"{cmd}.pre-lock-{stamp}")
+        cmd.write_text(new_cmd)
+    MARKER.parent.mkdir(parents=True, exist_ok=True)
+    MARKER.write_text(stamp + "\n")
+    subprocess.run(["sync"])
+    subprocess.run(["systemctl", "reboot"])
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

@@ -106,8 +106,8 @@ mkdir -p "$W/new/root"/{home,var/log,var/lib/systemd,var/lib/NetworkManager,etc/
 
 say "fstab + cmdline.txt"
 cat > "$W/new/root/etc/fstab" <<EOF
-PARTUUID=${LABEL_ID#0x}-01  /boot/firmware  vfat  defaults,ro  0  2
-PARTUUID=${LABEL_ID#0x}-02  /               ext4  defaults,noatime,ro  0  1
+PARTUUID=${LABEL_ID#0x}-01  /boot/firmware  vfat  defaults  0  2
+PARTUUID=${LABEL_ID#0x}-02  /               ext4  defaults,noatime  0  1
 LABEL=FWDATA  /fwdata  ext4  defaults,noatime,nofail  0  2
 /fwdata/home                    /home                               none  bind  0  0
 /fwdata/var-log                 /var/log                            none  bind  0  0
@@ -126,9 +126,7 @@ sed -i 's/\bfsck.mode=skip\b/fsck.mode=auto/' "$CMD"
 grep -q 'ro\b' "$CMD" || true
 echo "   cmdline: $(cat "$CMD")"
 
-say "Provisioning flag: image ships with root read-write until fw-lock-rootfs runs (see README §9.4)"
-echo "   NOTE: fw-lock-rootfs.service is not implemented yet; fstab above is the production (ro) form."
-echo "   For the first provisioning boot, change both 'ro' to 'rw' in fstab, or boot with 'rw' on cmdline.txt."
+say "Provisioning form: root + boot ship READ-WRITE; fw-lock-rootfs.service flips them to ro after fw-commission (README 9.4)"
 
 say "Finish: shrink file to end of root, checksum, compress"
 sync; umount "$W/new/boot" "$W/new/root" "$W/new/data" "$W/old/root" "$W/old/boot"

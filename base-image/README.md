@@ -256,7 +256,7 @@ image's existing `user-data` (the fleet password hash survives), and `fw-commiss
 Models are listed in `commissioning/models.json` (`provision.py --list-models`).
 
 **Not yet verified on hardware:** `build-image.sh` end to end; `fw-commission` on a booted card; first-boot ordering of cloud-init vs
-`fw-commission` vs Klipper; the `fw-lock-rootfs` one-shot (§9.4) is still unwritten; `install-octoprint.sh` on a real unit.
+`fw-commission` vs Klipper; `fw-lock-rootfs` (§9.4, written, logic unit-tested, never booted: it flips `/` and `/boot/firmware` to `ro` and reboots once, and refuses unless FWDATA is mounted); `install-octoprint.sh` on a real unit.
 
 ## Older printers (compatibility)
 
