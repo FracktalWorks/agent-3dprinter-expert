@@ -244,9 +244,11 @@ def step_octoprint(args, p):
     p.put_dir(src, f"{REMOTE_DIR}/octoprint-fracktal")
     op = (f"--version {args.op_version}" if args.op_version else
           f"--source {GITHUB}/Fracktal_OctoPrint_NextGen/archive/refs/heads/production.zip")
-    cc = f"--cc-source {args.cc_source}" if args.cc_source else \
-        f"--cc-source {GITHUB}/ControlCenter/archive/refs/heads/{args.cc_ref or REPOS['ControlCenter'][1]}.zip"
-    base = f"bash {REMOTE_DIR}/octoprint-fracktal/install-octoprint.sh {op} {cc}"
+    # Default: the installer's own pinned ControlCenter (a tagged build with a real version number).
+    cc = (f"--cc-source {args.cc_source}" if args.cc_source else
+          f"--cc-source {GITHUB}/ControlCenter/archive/{args.cc_ref}.zip" if args.cc_ref else "")
+    plugins = f' --plugins "{args.op_plugins}"' if args.op_plugins else ""  # TwinDragonPrintRestore is always added
+    base = f"bash {REMOTE_DIR}/octoprint-fracktal/install-octoprint.sh {op} {cc}{plugins}"
     p.run(base)  # without --yes the installer only prints its plan
     if args.apply:
         p.run(base + " --yes")
@@ -316,8 +318,9 @@ def main(argv=None):
     ap.add_argument("--full-base", action="store_true", help="base: also boot tuning, nftables, kernel hold, ext4 remount-ro")
     ap.add_argument("--restart", action="store_true", help="klipper: restart the service afterwards")
     ap.add_argument("--op-version", help="octoprint: install this release (e.g. 1.11.8.post1) instead of the production branch")
-    ap.add_argument("--cc-ref", help="ControlCenter branch/tag (default: feat/octoprint-1.11-compat until merged)")
+    ap.add_argument("--cc-ref", help="octoprint: install ControlCenter from this branch/tag instead of the installer default (tag 1.1.8rc1)")
     ap.add_argument("--cc-source", help="ControlCenter pip source (URL or path); overrides --cc-ref")
+    ap.add_argument("--op-plugins", help='octoprint: extra pip plugins, e.g. the ones the old venv had (installer lists them)')
     ap.add_argument("--logo", help="splash: PNG to show (default: ControlCenter's splash.png)")
     ap.add_argument("--model"); ap.add_argument("--serial")
     args = ap.parse_args(argv)

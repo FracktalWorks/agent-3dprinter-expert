@@ -2,7 +2,7 @@
 
 **Bottom line:** open this repo in Claude Code on your PC, tell it *"deploy the printer at 192.168.x.x as a TwinDragon 600 V2, serial FW-0421"*, and it follows `.claude/skills/deploy-printer/SKILL.md`: it runs the scripts in `deploy/` one step at a time, shows you a dry run of each, and applies only when you say go. This page explains what each step does so you can check it, and what to do by hand.
 
-> **Verified status (read this first).** The software layer was tested on a PC: NextGen OctoPrint passes its test suite on Python 3.13 and works with ControlCenter's API client; the OctoPrint installer passed install, upgrade and rollback against a stubbed system. **Nothing below has yet been run on a real printer**: `touchui`, `splash`, `commission`, `fw-lock-rootfs`, `build-image.sh`, and the boot order of the whole chain. Treat the first deployment as the test, on a printer you can reach, and do the *Check* line of each step.
+> **Verified status (read this first).** Tested on a PC only: NextGen OctoPrint (full test suite on Python 3.13), ControlCenter's client and the print-restore plugin against it, the installer (install/upgrade/rollback, stubbed system). **Nothing has run on a real printer yet.** Treat the first deployment as the test and do the *Check* line of each step. Current state, known risks and the ordered to-do list: [`docs/STATUS.md`](STATUS.md).
 
 ---
 
@@ -36,8 +36,8 @@ Always: run a step **without** `--yes` first (dry run), read it, then add `--yes
 | 2 | `preflight` | Read-only. OS, Python, free space, OctoPrint version, services. | No `!!` warnings, or you understand each. |
 | 3 | `inspect-ui` | Read-only. Saves how the unit boots to its UI today (cmdline, config.txt, xinitrc, getty, Plymouth, fstab) to `deploy/reports/<host>-<time>/`. | Open `profile-startx.txt`, `getty-override.txt`, `xinitrc-global.txt`: they show what step 7 will replace. |
 | 4 | `base --yes` | Uploads `base-image/` and runs `apply.sh`: sysctl/journald/watchdog hardening, `fw-health`, update switch (auto-updates stay OFF), SSH hardening, installs `fw-commission` and `fw-lock-rootfs` (not enabled). `--full-base` adds boot tuning, firewall, kernel hold: **new images only**. | `pi_system_diagnostics.py --check base-image` is green. |
-| 5 | `klipper --yes [--restart]` | `klipper_IDEX` to `Production`, installs Klipper's Python packages into `~/klippy-env`. **MCU firmware is not touched.** Restart only when idle. | `~/klippy-env/bin/python --version` prints 3.13 on Debian 13; Klipper starts and connects to its MCUs. |
-| 6 | `octoprint --yes` | Runs `fracktal/install-octoprint.sh`: backs up `~/.octoprint`, keeps the old venv as `venv.old-<time>` (rollback), installs NextGen OctoPrint **and** ControlCenter into `~/OctoPrint/venv`, creates `config.yaml` only if absent (unique API key per printer), installs `octoprint.service`, waits for `/api/version`. | Script ends with "OctoPrint is up". Web UI on `http://<ip>/`. |
+| 5 | `klipper --yes [--restart]` | `klipper_IDEX` to `Production`, installs Klipper's Python packages into `~/klippy-env`. **MCU firmware is not touched.** Restart only when idle. Stops if `~/klipper_IDEX` has local edits: review them (`git diff`), stash or commit, re-run. | `~/klippy-env/bin/python --version` prints 3.13 on Debian 13; Klipper starts and connects to its MCUs. |
+| 6 | `octoprint --yes` | Runs `fracktal/install-octoprint.sh`: backs up `~/.octoprint`, keeps the old venv as `venv.old-<time>` (rollback), installs NextGen OctoPrint, ControlCenter and TwinDragonPrintRestore into `~/OctoPrint/venv`, creates `config.yaml` only if absent (unique API key per printer), installs `octoprint.service` (old one saved for rollback), waits for `/api/version`. Plugins from the old install are listed, not migrated: re-add with `--op-plugins "..."`. | Script ends with "OctoPrint is up". Web UI on `http://<ip>/`. |
 | 7 | `touchui --yes` | Installs `fw-touchui.service` + `~/.xinitrc`: X starts on tty1 and runs ControlCenter. See section 3. | After reboot the screen shows ControlCenter. |
 | 8 | `splash --yes` | Quiet boot, no rainbow screen, Fracktal logo. See section 4. | After reboot: logo, no scrolling text. |
 | 9 | `commission --model <id> --serial FW-xxxx --yes` | Activates the model's `PRINTER_*.cfg` (exactly one) and regenerates this printer's OctoPrint API key. Models: `python base-image/provision.py --list-models`. | `printer.cfg` has one active `[include PRINTER_*.cfg]`. |
@@ -86,6 +86,11 @@ Caveats: the splash needs the display to be a normal Pi framebuffer/KMS output (
 The same pieces are baked into a golden image so each new printer only needs personalising: build one unit with steps 4-8, `seal-image.sh`, read the card to `golden.img`, build the production layout with `base-image/build-image.sh` (Linux, root; not yet run end to end), flash, then on the PC: `python base-image/provision.py --boot <drive> --serial FW-0421 --model twindragon-600-v2 [--wifi-ssid ... --wifi-pass ...]`. First boot applies identity and model automatically. Details and the unproven items: `base-image/README.md` sections 9-10. Run `apply.sh --lock-rootfs` only on the image build, never on a live printer.
 
 ## 6. Updating a printer later
+
+> Until ControlCenter 1.1.8 and TwinDragonPrintRestore 1.0.6 are released, printers run the pre-release tags `1.1.8rc1` /
+> `1.0.6rc1`. If OctoPrint ever offers ControlCenter **1.1.7**, **decline it**: 1.1.7 cannot talk to a NextGen printer
+> (old fixed API key). See `docs/STATUS.md`, next steps 6-7.
+
 
 | What | How |
 |---|---|

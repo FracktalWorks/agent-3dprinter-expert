@@ -4,7 +4,7 @@
 Reads /boot/firmware/fw-commission.json (written by base-image/provision.py) and:
   1. activates the model's PRINTER_*.cfg in printer.cfg (exactly ONE [include PRINTER_*.cfg]);
   2. gives this printer its own OctoPrint API key + secretKey (the golden image's are shared);
-  3. restarts octoprint so ControlCenter (which reads the key from config.yaml) and the UI agree;
+  3. restarts octoprint and the touchscreen session (fw-touchui) so ControlCenter picks up the new key;
   4. writes /etc/fw/commissioned so it never runs twice. `--force` re-runs.
 Only the stdlib is used. Never touches CAN UUIDs/MCU serials: those are per-board, set by hand.
 """
@@ -97,6 +97,8 @@ def main(argv):
         os.chmod(oc, 0o600)
         log("OctoPrint API key and secretKey regenerated for this printer")
         subprocess.run(["systemctl", "restart", "octoprint"], check=False)
+        # ControlCenter reads the key once at start-up: restart the touchscreen session so it picks up the new one
+        subprocess.run(["systemctl", "try-restart", "fw-touchui"], check=False)
     else:
         log("no OctoPrint config.yaml yet (installer seeds a unique key on first install)")
     subprocess.run(["systemctl", "restart", "klipper"], check=False)

@@ -35,7 +35,7 @@ def fake_printer(apply):
 
 def args(**kw):
     ns = dict(apply=False, yes=False, user="pi", host="h", workspace=None, full_base=False, restart=False,
-              op_version=None, cc_ref=None, cc_source=None, logo=None, model=None, serial=None)
+              op_version=None, cc_ref=None, cc_source=None, logo=None, op_plugins=None, model=None, serial=None)
     ns.update(kw)
     return type("A", (), ns)()
 

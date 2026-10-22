@@ -8,7 +8,7 @@ description: >
 
 # Deploy a printer (Claude Code runbook)
 
-Full human-readable guide: `docs/DEPLOYMENT.md`. Read it first. This file is the operating procedure for you.
+Read `docs/STATUS.md` (current state, known risks, next steps) and `docs/DEPLOYMENT.md` (the guide) first. This file is the operating procedure for you.
 
 ## Rules
 1. **Every step is a dry run until `--yes`.** Run the dry run, show the user its output, get a "go", then re-run with `--yes`. Never batch several steps under one approval.

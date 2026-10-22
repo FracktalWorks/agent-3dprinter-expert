@@ -92,7 +92,7 @@ auto-reboots**; `fw-updates status` shows "REBOOT REQUIRED". Kernel/firmware/Kli
 * USB-to-CAN bridge: the Manta M8P enumerates as `1d50:606f` ("Klipper stm32h723xx") using the `gs_usb` driver → `can0`. There is **no** `/dev/ttyACM*` / `serial/by-id` device — that is normal.
 * CAN bitrate on this unit is **1,000,000** (`/etc/network/interfaces.d/can0`, RP2040 firmware `CANBUS_FREQUENCY=1000000`). Older docs say 500000 — the diagnostics now read the real value.
 * Image provisioning is **cloud-init (NoCloud)** on the boot partition: `user-data` (user, password hash, hostname), `meta-data` (`instance-id`), `network-config` (Wi-Fi). cloud-init applies `user-data` once per `instance-id`; **changing `instance-id` re-applies it**. Only the SHA-512 hash is stored, never the plaintext.
-* Klipper fork lives in `~/klipper_IDEX`, venv `~/klippy-env`, OctoPrint in `~/oprint`.
+* Klipper fork lives in `~/klipper_IDEX`, venv `~/klippy-env`, OctoPrint in `~/oprint` (before the NextGen install; the NextGen installer uses `~/OctoPrint/venv` and leaves `~/oprint` for rollback).
 * Known harmless boot noise: `vc_sm_cma_vchi_init` / `bcm2835_mmal_vchiq` errors (legacy camera stack; `camera_auto_detect=0`).
 
 ## 7. Golden image: cleanup, sealing, shrinking, deployment
@@ -243,7 +243,7 @@ Check which generation a unit runs: `pi_system_diagnostics.py --host <ip> --chec
 
 | Step | Where | When | Tool |
 |---|---|---|---|
-| Build everything common (OS, Klipper, OctoPrint, ControlCenter, hardening, generic config) | the reference unit | once per image release | `apply.sh`, `install-octoprint.sh`, `slim.sh` |
+| Build everything common (OS, Klipper, OctoPrint, ControlCenter, hardening, touch UI, boot splash, generic config) | the reference unit | once per image release | `deploy/deploy_printer.py` steps base → splash (wraps `apply.sh`, `install-octoprint.sh`, `touchui/`, `splash/`), then `slim.sh` |
 | Seal, read card to `golden.img` | reference unit + PC | once per image release | `seal-image.sh`, `dd`/Imager |
 | Re-layout (ro root, FWDATA, root last), compress | PC (WSL2/Linux, root) | once per image release | `build-image.sh` *(written, not yet run)* |
 | Flash | PC | per printer | Raspberry Pi Imager / balenaEtcher |
