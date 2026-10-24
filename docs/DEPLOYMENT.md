@@ -11,7 +11,7 @@
 | Item | Notes |
 |---|---|
 | A PC (Windows/Linux/macOS) with Python 3.10+, git, Claude Code | Same network as the printer. |
-| This repo, plus its siblings | The `workspace` step clones `Fracktal_OctoPrint_NextGen`, `klipper_IDEX`, `ControlCenter` next to it. |
+| This repo, plus its siblings | The `workspace` step clones `Fracktal_OctoPrint_NextGen`, `klipper_IDEX`, `ControlCenter`, `OctoprintKlipperPlugin` next to it. |
 | `pip install -r requirements.txt` | Installs paramiko (SSH), python-dotenv, pyyaml. |
 | `.env` in the repo root (never committed) | `PRINTER_SSH_HOST=192.168.x.x`, `PRINTER_SSH_USER=pi`, and `PRINTER_SSH_PASSWORD=...` or `PRINTER_SSH_KEY=path`. Ask the team lead for the fleet password. |
 | A printer with the Debian 13 base image | Raspberry Pi OS Lite arm64 (trixie), user `pi`, SSH on, internet access (GitHub, apt). See `base-image/README.md`. Older printers (Debian 10-12, OctoPrint 1.7.x) are a different generation: do not use these scripts on them without the team lead. |
@@ -32,7 +32,7 @@ Always: run a step **without** `--yes` first (dry run), read it, then add `--yes
 
 | # | Command (`python deploy/deploy_printer.py ...`) | What it does | Check |
 |---|---|---|---|
-| 1 | `workspace --yes` | Clones/updates the three repos next to this one on the right branches. | Output lists each repo with a commit id. |
+| 1 | `workspace --yes` | Clones/updates the four repos next to this one on the right branches. | Output lists each repo with a commit id. |
 | 2 | `preflight` | Read-only. OS, Python, free space, OctoPrint version, services. | No `!!` warnings, or you understand each. |
 | 3 | `inspect-ui` | Read-only. Saves how the unit boots to its UI today (cmdline, config.txt, xinitrc, getty, Plymouth, fstab) to `deploy/reports/<host>-<time>/`. | Open `profile-startx.txt`, `getty-override.txt`, `xinitrc-global.txt`: they show what step 7 will replace. |
 | 4 | `base --yes` | Uploads `base-image/` and runs `apply.sh`: sysctl/journald/watchdog hardening, `fw-health`, update switch (auto-updates stay OFF), SSH hardening, installs `fw-commission` and `fw-lock-rootfs` (not enabled). `--full-base` adds boot tuning, firewall, kernel hold: **new images only**. | `pi_system_diagnostics.py --check base-image` is green. |

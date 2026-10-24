@@ -37,6 +37,7 @@ REPOS = {  # folder name -> (clone url, branch to use)
     "Fracktal_OctoPrint_NextGen": (f"{GITHUB}/Fracktal_OctoPrint_NextGen.git", "production"),
     "klipper_IDEX": (f"{GITHUB}/klipper_IDEX.git", "Production"),
     "ControlCenter": (f"{GITHUB}/ControlCenter.git", "production"),
+    "OctoprintKlipperPlugin": (f"{GITHUB}/OctoprintKlipperPlugin.git", "production"),
 }
 
 

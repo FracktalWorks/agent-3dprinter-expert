@@ -11,6 +11,7 @@
 | OctoPrint (old generation) | `FracktalWorks/Fracktal_OctoPrint` · `master` | 1.7.x, maintenance only; README banner says so. Untouched otherwise. |
 | ControlCenter | `FracktalWorks/ControlCenter` · `production`, **release 1.1.8** | Merged and released 2026-10-22. Works on both generations (checked: Python 3.7 syntax, 1.7 endpoints, fallbacks). 1.1.7 and older do **not** work on NextGen printers. |
 | Print restore plugin | `FracktalWorks/TwinDragonPrintRestore` · `main`, **release 1.0.6** | Build fixes only (Python 3.12+, pip isolation); also works on Python 3.7 printers. 1.0.5 does not install on Python 3.13. |
+| OctoKlipper plugin | `FracktalWorks/OctoprintKlipperPlugin` · `production` (fork of thelastWallE), **release 0.4.1** | Software Update from FracktalWorks; Klipper Update tab uses `klipper_IDEX` (no tags: `Production@<sha>`, update = `git pull --ff-only`, never `reset --hard origin/master`); settings tab "Klipper Configuration" lists/edits the config folder; `setup.py` builds under pip isolation. Installed by default by the NextGen installer. On a printer set `config_path ~/printer_data/config`, `klipper_path ~/klipper_IDEX/`. |
 | Klipper | `FracktalWorks/klipper_IDEX` · `Production` | Fast-forwarded to include `fracktal_config/` templates + Z resonance backport. Not upgraded to newer upstream (toolboards). |
 
 ## What changed, per component
