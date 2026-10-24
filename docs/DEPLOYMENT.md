@@ -2,7 +2,7 @@
 
 **Bottom line:** open this repo in Claude Code on your PC, tell it *"deploy the printer at 192.168.x.x as a TwinDragon 600 V2, serial FW-0421"*, and it follows `.claude/skills/deploy-printer/SKILL.md`: it runs `deploy/deploy_printer.py` one step at a time, shows you a dry run of each, and applies only when you say go. This page explains what each step does so you can check it, and what is still done by hand.
 
-> **Verified status.** The first real deployment was the reference unit (192.168.0.184, CM4 1 GB + Manta M8P + 2 RP2040 CAN toolheads, Debian 13, Wi-Fi only) on 2026-10-22..24. Proven there: `base`, `klipper`, NextGen OctoPrint (1.11.8.post3), ControlCenter 1.1.8, TwinDragonPrintRestore 1.0.6, OctoKlipper 0.4.2 (Fracktal fork), the config folder layout, CAN UUIDs, `verify`. **Not yet proven on hardware:** `touchui` (the unit still boots the old way), `splash`, `commission`, the image build. Every hard-won lesson is in [section 8](#8-what-went-wrong-on-the-first-deployment-and-what-prevents-it-now). Current state and next steps: [`docs/STATUS.md`](STATUS.md).
+> **Verified status.** The first real deployment was the reference unit (192.168.0.184, CM4 1 GB + Manta M8P + 2 RP2040 CAN toolheads, Debian 13, Wi-Fi only) on 2026-10-22..24. Proven there: `base`, `klipper`, NextGen OctoPrint (1.11.8.post3), ControlCenter 1.1.8, TwinDragonPrintRestore 1.0.6, OctoKlipper 0.4.2 (Fracktal fork), the config folder layout, CAN UUIDs, `touchui --retire-legacy` (rootless X as `pi`), `verify`. **Not yet proven on hardware:** `splash`, `commission`, the image build. Every hard-won lesson is in [section 8](#8-what-went-wrong-on-the-first-deployment-and-what-prevents-it-now). Current state and next steps: [`docs/STATUS.md`](STATUS.md).
 
 ---
 
