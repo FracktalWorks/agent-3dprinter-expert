@@ -1,6 +1,6 @@
 # New-generation printer software: status and handoff (updated 2026-10-24)
 
-**Bottom line:** the stack now runs on a real printer. The reference unit (192.168.0.184, TwinDragon 600 V2) runs NextGen OctoPrint with every Fracktal component from FracktalWorks repos, and the deploy tool carries all of that deployment's lessons (`docs/DEPLOYMENT.md` section 8). What is left on that unit: `splash` and a test print. Touchscreen, webcam and 1.11.8.post5 (installed with the new `octoprint --yes` upload/unit path) were proven on 2026-10-24. The next printer: follow `docs/DEPLOYMENT.md` / the `deploy-printer` skill from step 1.
+**Bottom line:** the stack now runs on a real printer. The reference unit (192.168.0.184, TwinDragon 600 V2) runs NextGen OctoPrint with every Fracktal component from FracktalWorks repos, and the deploy tool carries all of that deployment's lessons (`docs/DEPLOYMENT.md` section 8). What is left on that unit: a test print. Touchscreen, webcam, boot splash and 1.11.8.post5 (installed with the new `octoprint --yes` upload/unit path) were proven on 2026-10-24. The next printer: follow `docs/DEPLOYMENT.md` / the `deploy-printer` skill from step 1.
 
 ## Where everything is
 
@@ -31,7 +31,7 @@
 
 | Verified | Not yet verified |
 |---|---|
-| Reference unit: `base`, `klipper`, NextGen OctoPrint + all plugins, config layout, CAN UUIDs, OctoKlipper settings tab + editor, branding, both toolhead temperatures, heating to 200 °C, `touchui --retire-legacy` (rootless X as `pi`, survives a reboot), `webcam --sensor ov5647` (CSI camera, confirmed in OctoPrint) | `splash`, `commission`, `fw-lock-rootfs`, image build, first-boot ordering |
+| Reference unit: `base`, `klipper`, NextGen OctoPrint + all plugins, config layout, CAN UUIDs, OctoKlipper settings tab + editor, branding, both toolhead temperatures, heating to 200 °C, `touchui --retire-legacy` (rootless X as `pi`, survives a reboot), `webcam --sensor ov5647` (CSI camera, confirmed in OctoPrint), `splash` (Plymouth logo 6.5–23 s, then fw-touchui) | `commission`, `fw-lock-rootfs`, image build, first-boot ordering |
 | OctoPrint NextGen test suite in CI on every release tag (incl. profile-migration test) | A real print on Python 3.13; power-loss restore on NextGen |
 | Deploy tool: unit tests (no printer needed); `octoprint --yes` upload + unit path end to end on .184 (survived Wi-Fi drops during pip) | The full procedure on a fresh printer |
 
@@ -45,7 +45,7 @@
 
 ## Next steps (in order)
 
-1. Reference unit: ~~`touchui`~~ done; `splash`; reboot; `verify` (expect 0 problems); confirm on the screen: logo → ControlCenter loading screen → home screen (ControlCenter 1.1.8).
+1. Reference unit: ~~`touchui`, `splash`~~ done 2026-10-24 (logo → ControlCenter loading screen → home screen).
 2. Reference unit: ~~`octoprint --yes` (1.11.8.post5)~~ done; test print: temperatures, pause/resume, power-loss restore screen.
 3. Trace the `M500` caller (risk 3) and decide on ControlCenter's config template (risk 1).
 4. Next printer: full procedure from `workspace`; fix whatever differs in the repo first, then re-run.

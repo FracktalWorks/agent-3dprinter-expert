@@ -2,7 +2,7 @@
 
 **Bottom line:** open this repo in Claude Code on your PC, tell it *"deploy the printer at 192.168.x.x as a TwinDragon 600 V2, serial FW-0421"*, and it follows `.claude/skills/deploy-printer/SKILL.md`: it runs `deploy/deploy_printer.py` one step at a time, shows you a dry run of each, and applies only when you say go. This page explains what each step does so you can check it, and what is still done by hand.
 
-> **Verified status.** The first real deployment was the reference unit (192.168.0.184, CM4 1 GB + Manta M8P + 2 RP2040 CAN toolheads, Debian 13, Wi-Fi only) on 2026-10-22..24. Proven there: `base`, `klipper`, NextGen OctoPrint (1.11.8.post3), ControlCenter 1.1.8, TwinDragonPrintRestore 1.0.6, OctoKlipper 0.4.2 (Fracktal fork), the config folder layout, CAN UUIDs, `touchui --retire-legacy` (rootless X as `pi`), `verify`. **Not yet proven on hardware:** `splash`, `commission`, the image build. Every hard-won lesson is in [section 8](#8-what-went-wrong-on-the-first-deployment-and-what-prevents-it-now). Current state and next steps: [`docs/STATUS.md`](STATUS.md).
+> **Verified status.** The first real deployment was the reference unit (192.168.0.184, CM4 1 GB + Manta M8P + 2 RP2040 CAN toolheads, Debian 13, Wi-Fi only) on 2026-10-22..24. Proven there: `base`, `klipper`, NextGen OctoPrint (1.11.8.post3), ControlCenter 1.1.8, TwinDragonPrintRestore 1.0.6, OctoKlipper 0.4.2 (Fracktal fork), the config folder layout, CAN UUIDs, `touchui --retire-legacy` (rootless X as `pi`), `webcam`, `splash`, `verify`. **Not yet proven on hardware:** `commission`, the image build. Every hard-won lesson is in [section 8](#8-what-went-wrong-on-the-first-deployment-and-what-prevents-it-now). Current state and next steps: [`docs/STATUS.md`](STATUS.md).
 
 ---
 
@@ -76,7 +76,7 @@ Chain at power-on: **Pi firmware** → **kernel** → **systemd** → `octoprint
 | Hand-off to X | `fw-touchui.service` starts after Plymouth quits | `touchui` |
 | ControlCenter loading screen | ControlCenter itself (`ui/loading_screen`) | already part of the app |
 
-The logo defaults to ControlCenter's `octoprint_ControlCenter/ui/resources/img/splash.png`; `--logo path.png` for another. It installs Plymouth if needed and rebuilds the initramfs, so it needs a **writable root** (`sudo fw-rw on` on a read-only unit). Revert: restore the `*.pre-splash-*` files, `sudo plymouth-set-default-theme -R <old theme>`. Needs a normal framebuffer/KMS display (HDMI/DSI); if the logo does not show, nothing else breaks.
+The logo defaults to `base-image/splash/fracktal-boot-logo.png` (mark + wordmark, transparent, made for the black screen; ControlCenter's `splash.png` is black text on white and shows as a white box); `--logo path.png` for another. On the reference unit the logo shows from ~6.5 s to ~23 s, then `fw-touchui` takes over. It installs Plymouth if needed and rebuilds the initramfs, so it needs a **writable root** (`sudo fw-rw on` on a read-only unit). Revert: restore the `*.pre-splash-*` files, `sudo plymouth-set-default-theme -R <old theme>`. Needs a normal framebuffer/KMS display (HDMI/DSI); if the logo does not show, nothing else breaks.
 
 ## 5. Config files: one folder for Klipper, OctoKlipper and ControlCenter
 
@@ -125,6 +125,7 @@ Build one unit with steps 4-10, `seal-image.sh`, read the card to `golden.img`, 
 | 16 | `M500` (= `SAVE_CONFIG`) runs after each Klipper start and adds a `printer-<date>.cfg` backup each time. | Not fixed yet (ControlCenter/macro); `verify` counts them. |
 | 17 | Pi camera showed "no signal": `camera_auto_detect=0`, and `gpu_mem=16` loads the cut-down firmware (`start4cd.elf`) with no camera ISP/encoder (`rpicam-apps ... only supports the Raspberry Pi platforms`); the hand-made ustreamer service only works with USB cameras. | `webcam` step; `verify` checks `gpu_mem`, the service and a snapshot. |
 | 18 | OctoPrint stream URL `/webcam/?action=stream` (ControlCenter's template) only works behind OctoPi's haproxy. | `webcam` sets `http://<ip>:8080/?action=stream`; `verify` flags `/webcam/`. Give printers a fixed DHCP lease. |
+| 20 | Splash dry run: a false "root is read-only" (checked as `pi`), a second `loglevel=` appended to the kernel command line (the last one wins: louder boot), no `config.txt` backup when only adding a line, and a white-box logo. | Fixed in the `splash` step; it runs as a unit (apt + initramfs). |
 | 19 | OctoPrint's update check got HTTP 404: plugins.octoprint.org's check overlay rewrote `octoprint` to user `OctoPrint` (and OctoKlipper's `klipper` to upstream `AliceGrey`). No NextGen printer saw a Fracktal release. | Fixed in 1.11.8.post5: the overlay cannot touch Fracktal checks. `verify` flags the 404. |
 
 ## 9. Updating a printer later

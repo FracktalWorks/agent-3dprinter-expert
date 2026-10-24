@@ -505,14 +505,20 @@ def step_webcam(args, p):
 
 def step_splash(args, p):
     say("splash: quiet boot + logo (Plymouth)")
-    logo = Path(args.logo) if args.logo else (workspace_dir(args) / "ControlCenter" / "octoprint_ControlCenter" /
-                                              "ui" / "resources" / "img" / "splash.png")
+    # default: Fracktal mark + wordmark on a transparent background, made for the black boot screen
+    # (ControlCenter's splash.png is black text on white: a white box on black)
+    logo = Path(args.logo) if args.logo else BASE_IMAGE / "splash" / "fracktal-boot-logo.png"
     if not logo.exists():
         raise SystemExit(f"logo not found: {logo} (pass --logo <png>)")
     p.put_dir(BASE_IMAGE / "splash", f"{REMOTE_DIR}/splash")
     p.put_file(logo, f"{REMOTE_DIR}/splash/logo.png")
-    p.run("touch /etc/.rwtest 2>/dev/null && rm -f /etc/.rwtest || echo 'root is read-only: sudo fw-rw on first'", check=False)
-    p.run(f"sudo bash {REMOTE_DIR}/splash/install-splash.sh --logo {REMOTE_DIR}/splash/logo.png" + (" --yes" if args.apply else ""))
+    if p.quiet("findmnt -no OPTIONS / | cut -d, -f1") == "ro":
+        raise SystemExit("root is read-only: 'sudo fw-rw on' first (Plymouth rebuilds the initramfs)")
+    cmd = f"/bin/bash {REMOTE_DIR}/splash/install-splash.sh --logo {REMOTE_DIR}/splash/logo.png"
+    p.run(f"sudo {cmd}", check=False)   # dry run: the plan
+    if args.apply:  # apt install + initramfs rebuild: as a unit, so a dropped SSH session is harmless
+        p.run_unit("fw-deploy-splash", f"{cmd} --yes")
+        print("   Reboot to see it (ask first), then 'verify'.")
 
 
 def step_commission(args, p):
@@ -570,7 +576,7 @@ def main(argv=None):
     ap.add_argument("--sensor", help="webcam: camera sensor overlay (ov5647 = Camera v1.x, imx219, imx708, imx477)")
     ap.add_argument("--cam0", action="store_true", help="webcam: camera on the CM4's CAM0 port (default CAM1 = Manta M8P)")
     ap.add_argument("--webcam-args", help='webcam: fw-webcam options, e.g. "--width 1296 --height 972 --fps 15 --rotate 180"')
-    ap.add_argument("--logo", help="splash: PNG to show (default: ControlCenter's splash.png)")
+    ap.add_argument("--logo", help="splash: PNG to show (default: base-image/splash/fracktal-boot-logo.png)")
     ap.add_argument("--model"); ap.add_argument("--serial")
     args = ap.parse_args(argv)
     args.apply = args.yes
