@@ -65,3 +65,5 @@ agent-data/machines/mandel/**/*.gcode
 
 # per-printer inspection output of deploy/deploy_printer.py
 deploy/reports/
+# release/plugin archives downloaded by deploy_printer.py octoprint
+deploy/cache/

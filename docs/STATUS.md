@@ -1,58 +1,52 @@
-# New-generation printer software: status and handoff (updated 2026-10-22)
+# New-generation printer software: status and handoff (updated 2026-10-24)
 
-**Bottom line:** everything that can be built and tested without a printer is done and pushed. Nothing has run on a real printer yet. The next session starts at **"Next steps"** below, on the reference unit (192.168.0.184, CM4 + Manta M8P, Debian 13), driven by `docs/DEPLOYMENT.md` / the `deploy-printer` skill.
+**Bottom line:** the stack now runs on a real printer. The reference unit (192.168.0.184, TwinDragon 600 V2) runs NextGen OctoPrint with every Fracktal component from FracktalWorks repos, and the deploy tool carries all of that deployment's lessons (`docs/DEPLOYMENT.md` section 8). What is left on that unit: the touchscreen boot (`touchui`), `splash`, a test print. The next printer: follow `docs/DEPLOYMENT.md` / the `deploy-printer` skill from step 1.
 
 ## Where everything is
 
 | Component | Repo / branch | State |
 |---|---|---|
-| Deploy tool, docs, base image, provisioning | `FracktalWorks/agent-3dprinter-expert` · `main` | `deploy/deploy_printer.py`, `docs/DEPLOYMENT.md`, `base-image/` (overlay, `apply.sh`, `touchui/`, `splash/`, `provision.py`, `build-image.sh`), skill `.claude/skills/deploy-printer/` |
-| OctoPrint (new generation) | `FracktalWorks/Fracktal_OctoPrint_NextGen` · `production` (default branch; renamed from `OctoPrintUpdates-`) | OctoPrint 1.11.8 + Fracktal patches. Installer `fracktal/install-octoprint.sh`, config template `fracktal/config/config.yaml`, release workflow `.github/workflows/fracktal-release.yml`. **No release published yet.** |
-| OctoPrint (old generation) | `FracktalWorks/Fracktal_OctoPrint` · `master` | 1.7.x, maintenance only; README banner says so. Untouched otherwise. |
-| ControlCenter | `FracktalWorks/ControlCenter` · `production`, **release 1.1.8** | Merged and released 2026-10-22. Works on both generations (checked: Python 3.7 syntax, 1.7 endpoints, fallbacks). 1.1.7 and older do **not** work on NextGen printers. |
-| Print restore plugin | `FracktalWorks/TwinDragonPrintRestore` · `main`, **release 1.0.6** | Build fixes only (Python 3.12+, pip isolation); also works on Python 3.7 printers. 1.0.5 does not install on Python 3.13. |
-| OctoKlipper plugin | `FracktalWorks/OctoprintKlipperPlugin` · `production` (fork of thelastWallE), **release 0.4.2** | Software Update from FracktalWorks. Defaults are the Fracktal layout (`config_path ~/printer_data/config`, `baseconfig ~/printer_data/config/printer.cfg`, `klipper_path ~/klipper_IDEX/`, `logpath ~/printer_data/logs` = a folder), so nothing per printer. Klipper Update removed (no tab, no startup check, `/update` `/install` `/checkKlipperUpdate` answer 410): `klipper_IDEX` is updated only by `deploy_printer.py klipper`. Settings tab "Klipper Configuration" lists/edits the config folder. `setup.py` builds under pip isolation. Installed by default by the NextGen installer. |
-| Klipper | `FracktalWorks/klipper_IDEX` · `Production` | Fast-forwarded to include `fracktal_config/` templates + Z resonance backport. Not upgraded to newer upstream (toolboards). |
+| Deploy tool, docs, base image, provisioning | `FracktalWorks/agent-3dprinter-expert` · `main` | `deploy/deploy_printer.py` (+ `deploy/remote/*` run on the printer), `docs/DEPLOYMENT.md`, `base-image/` (overlay, `apply.sh`, `touchui/`, `splash/`, `provision.py`, `build-image.sh`), skill `.claude/skills/deploy-printer/` |
+| OctoPrint (new generation) | `FracktalWorks/Fracktal_OctoPrint_NextGen` · `production`, **release 1.11.8.post4** | 1.11.8 + Fracktal patches (heaters, filament, branding, profile migration fix). Installer `fracktal/install-octoprint.sh` (installs ControlCenter + TwinDragonPrintRestore + OctoKlipper; restores the old OctoPrint on any failure; `--default-plugins` for uploaded archives), config template `fracktal/config/config.yaml`, release workflow on tag push. |
+| OctoPrint (old generation) | `FracktalWorks/Fracktal_OctoPrint` · `master` | 1.7.x, maintenance only. Its branding commit `42e774f89` is the origin of NextGen's images. |
+| ControlCenter | `FracktalWorks/ControlCenter` · `production`, **release 1.1.8** | Works on both generations. 1.1.7 and older do **not** work on NextGen printers. |
+| Print restore plugin | `FracktalWorks/TwinDragonPrintRestore` · `main`, **release 1.0.6** | Python 3.12+ / pip-isolation build fixes. |
+| OctoKlipper plugin | `FracktalWorks/OctoprintKlipperPlugin` · `production` (fork of thelastWallE, `upstream` remote in the clone), **release 0.4.2** | Software Update from FracktalWorks; defaults = Fracktal layout (`~/printer_data/config`, `~/klipper_IDEX/`, logs folder `~/printer_data/logs`); Klipper Update removed; "Klipper Configuration" settings tab; `setup.py` builds under pip isolation. |
+| Klipper | `FracktalWorks/klipper_IDEX` · `Production` | `fracktal_config/` templates + Z resonance backport. No release tags (OctoKlipper shows `Production@<sha>`). |
 
-## What changed, per component
+## Reference unit 192.168.0.184 (as of 2026-10-24 15:30)
 
-**OctoPrint NextGen** (1.11.8 base): heated filament (`F:`, `M142/M192`, `/api/printer/filament`), secondary heaters `H0..Hn` (`M104 H<n>`, `/api/printer/heater/<n>`), chamber/filament in temperature profiles, PNG sibling delete, branding, update source = this repo (Stable=`production`, Beta=`beta`). Old 1.7 `firstRun` bypass deliberately **not** ported. Default config: LAN auto-login as `admin`, CORS open, `/tmp/printer`, checksums off, wizard skipped; unique API key + secretKey per printer generated at install.
-Installer: dry run by default; backs up `~/.octoprint` and the old `octoprint.service`; keeps the old venv (`venv.old-*`); installs ControlCenter 1.1.8 + TwinDragonPrintRestore 1.0.6 (release tags) by default; never overwrites an existing `config.yaml`; `--rollback` restores venv, service file and config.
-
-**ControlCenter 1.1.8**: API key read from OctoPrint's `config.yaml` (`$OCTOPRINT_API_KEY` → `~/.octoprint` → `/home/pi/.octoprint` → legacy key); `/api/tool`,`/api/bed` → `/api/printer/tool|bed`; config template schema-valid for 1.11; per-printer secrets preserved when applying templates; failsafe restore keeps the key in use and gives the files back to `pi`; skips rewriting `/etc/X11/xinit/xinitrc` when `/etc/fw/touchui-managed` exists; `setup.py` builds without OctoPrint importable (pip isolation).
-
-**TwinDragonPrintRestore 1.0.6**: versioneer fixed for Python 3.12+; `setup.py` builds under pip isolation.
-
-**Linux / base image**: hardening overlay + `fw-health` + `fw-updates` (existing); new `fw-commission` (first-boot model + key), `fw-lock-rootfs` (read-only root after commissioning, opt-in `apply.sh --lock-rootfs`), `touchui/` (`fw-touchui.service`: startx on tty1 as `pi` → `~/.xinitrc` → ControlCenter with the venv's Python), `splash/` (Plymouth theme, quiet cmdline, `disable_splash`), `provision.py` + `commissioning/models.json` (SD-card personalisation), `build-image.sh` (ro root + FWDATA layout).
+| | State |
+|---|---|
+| OS / power | Debian 13, kernel 6.18, CM4 1 GB, **Wi-Fi only** (`eth0` down), no undervoltage. `base` applied (hardware watchdog 15 s). |
+| Klipper | `klipper_IDEX` `Production` @ `bd6a517e`, clean (old CRLF-only edits in `git stash`). `ready`; config `~/printer_data/config/printer.cfg` (TwinDragon 600 V2). |
+| CAN | `[mcu]` `8e73c0160b99` (Manta, stm32h723), `toolhead0` `7cb976b83a03`, `toolhead1` `3ec1b8773dd7` (RP2040, 1 Mbit/s; left/right checked by endstop and swapped). |
+| Configs | 25 files in `~/printer_data/config`, symlinks in `/home/pi` for ControlCenter. Old unused set: `~/printer_data/config.old-20261024-140739`. |
+| OctoPrint | 1.11.8.post3 in `~/OctoPrint/venv`, ControlCenter 1.1.8, TwinDragonPrintRestore 1.0.6, OctoKlipper 0.4.2; printer profile Twin Dragon 600 V2 (2 extruders, 660×620×414); config aligned with the template. Old 1.11.7 still in `~/oprint` (rollback). |
+| Touchscreen | **Still the legacy boot**: tty1 autologin + `startx` in `~/.bashrc` + `~/.xinitrc` → **ControlCenter 1.1.5 from `~/oprint`**. Next: `touchui --yes --retire-legacy`, reboot. |
+| Webcam | Set up by hand by another session (ustreamer `webcamd.service` :8080, nftables rule): not in the repos, unverified (no camera attached). |
+| Leftovers (safe to delete) | `~/OctoPrint/venv.old-*`, `venv.failed-*`, `~/fw-deploy/pkgs/`, `~/octoprint-backup-*.tar.gz` (keep the newest), `config.yaml.pre-*`. |
 
 ## Verified vs not
 
-| Verified on the PC | Not yet verified (needs the printer) |
+| Verified | Not yet verified |
 |---|---|
-| OctoPrint NextGen: full test suite (1047) on Python 3.13; heater/filament/profile API live against the virtual printer (11/11) | Anything on real hardware |
-| ControlCenter's REST + websocket client against live 1.11.8, incl. print-restore endpoints (16/17, the miss is a test bug) | ControlCenter on the touchscreen; rootless X as `pi` |
-| ControlCenter + TwinDragonPrintRestore load as plugins in 1.11.8 | Plymouth splash on the real display |
-| Plugin wheels identical with/without OctoPrint at build time | `fw-commission`, `fw-lock-rootfs` on a booted card |
-| Installer install/upgrade/rollback in WSL with stubbed sudo/systemctl | `build-image.sh` end to end |
-| Klipper host: pinned deps install, chelper compiles, 162 modules import on 3.13 | Klipper regression suite (needs MCU dictionaries); a real print on 3.13 |
-| `provision.py`, `fw-commission`/`fw-lock-rootfs` logic, deploy tool: 22 unit tests | First-boot ordering cloud-init → fw-commission → fw-touchui |
+| Reference unit: `base`, `klipper`, NextGen OctoPrint + all plugins, config layout, CAN UUIDs, OctoKlipper settings tab + editor, branding, both toolhead temperatures, heating to 200 °C | `touchui` (rootless X as `pi`), `splash`, `commission`, `fw-lock-rootfs`, image build, first-boot ordering |
+| OctoPrint NextGen test suite in CI on every release tag (incl. profile-migration test) | A real print on Python 3.13; power-loss restore on NextGen |
+| Deploy tool: 30 unit tests (no printer needed); `deploy/remote/*.sh` syntax | The new `deploy_printer.py octoprint` path (upload + unit) end to end on a fresh printer |
 
-## Known risks to handle on the printer
+## Known risks
 
-1. **Reference unit's `~/klipper_IDEX` has 3 uncommitted edits** (`resonance_tester.py`, `shaper_calibrate.py`, untracked `scripts/elf2uf2.py`). The `klipper` step stops on them (by design). `Production` already contains the resonance backport "as running on the reference unit": diff the local edits against it (`git diff`, `git stash`), keep `elf2uf2.py` (commit it or copy it off), then re-run.
-2. **Its OctoPrint lives in `~/oprint`** (not `~/OctoPrint/venv`). The installer leaves `~/oprint` in place, points the service at the new venv, and saves the old service file, so `--rollback` returns to `~/oprint`.
-3. **Plugins in the old venv are not migrated.** The installer prints them; reinstall the ones still needed with `deploy_printer.py octoprint --op-plugins "..."`. TwinDragonPrintRestore is installed automatically.
-4. **Install plugins from release tags, never branch zips.** A branch archive has no usable version number (a branch name with digits was even parsed as one and broke the build), and an unversioned plugin is offered old releases as "updates". The installer pins ControlCenter 1.1.8 / TwinDragonPrintRestore 1.0.6. Never put ControlCenter <= 1.1.7 on a NextGen printer.
-5. Rootless X may be refused on this hardware: fallback in `docs/DEPLOYMENT.md` section 3.
-6. Undervoltage mimics software faults: `pi_system_diagnostics.py --check power` before blaming code.
+1. **ControlCenter "Restore print settings to default"** (touchscreen) replaces OctoPrint's `config.yaml` with ControlCenter's template (auto-login from any address, tracking on, old commands). Run `verify` after anyone uses it. Real fix: ControlCenter's template (`octoprint_ControlCenter/config/`), which `CLAUDE.md` marks reference-only: team lead decision.
+2. **Old installs' Software Update** offers upstream OctoPrint and ControlCenter 1.1.7: decline both.
+3. **`M500` → `SAVE_CONFIG` after every Klipper start** leaves a `printer-<date>.cfg` backup each time (the old folder had ~1,480). Caller is ControlCenter or a macro: not traced yet.
+4. Rootless X may be refused on some hardware: fallback in `docs/DEPLOYMENT.md` section 3.
+5. Undervoltage mimics software faults: `pi_system_diagnostics.py --check power` before blaming code.
 
 ## Next steps (in order)
 
-1. `deploy_printer.py workspace --yes`, `preflight`, `inspect-ui`; read the report (how the unit boots to its UI today).
-2. `pi_system_diagnostics.py --host 192.168.0.184 --check octoprint`: which OctoPrint/plugins are on it now.
-3. Steps `base`, `klipper` (risk 1), `octoprint` (risks 2-3), `touchui`, `splash`; reboot; `verify`; confirm on the screen: logo → ControlCenter loading screen → home screen.
-4. Print a test file; check temperatures, pause/resume, power-loss restore screen.
-5. If anything differs from the docs, fix the scripts in the repo (not by hand on the printer) and re-run.
-6. ~~ControlCenter 1.1.8 / TwinDragonPrintRestore 1.0.6 releases~~ -- done 2026-10-22 (both also offered to old printers via Software Update; changes are backwards compatible). The `1.1.8rc1`/`1.0.6rc1` tags are superseded: do not use them (rc1's config template had a seenWizards type bug).
-7. OctoPrint NextGen: tag `1.11.8.post1` on `production` and push the tag (workflow publishes the release); check the printer sees it under Software Update.
-8. Image: on the finished reference unit `seal-image.sh`, read the card, `build-image.sh` on Linux, boot on a spare card, walk `base-image/README.md` §9.5, try `provision.py` + first boot.
+1. Reference unit: `touchui` dry run → `--yes --retire-legacy`; `splash`; reboot; `verify` (expect 0 problems); confirm on the screen: logo → ControlCenter loading screen → home screen (ControlCenter 1.1.8).
+2. Reference unit: test print; temperatures, pause/resume, power-loss restore screen. Then `octoprint --yes` once more to prove the new upload/unit path (installs 1.11.8.post4).
+3. Trace the `M500` caller (risk 3) and decide on ControlCenter's config template (risk 1).
+4. Next printer: full procedure from `workspace`; fix whatever differs in the repo first, then re-run.
+5. Image: on the finished reference unit `seal-image.sh`, read the card, `build-image.sh` on Linux, boot a spare card, `base-image/README.md` §9.5, `provision.py` + first boot.

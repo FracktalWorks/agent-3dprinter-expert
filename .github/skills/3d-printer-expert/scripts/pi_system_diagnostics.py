@@ -30,6 +30,12 @@ import os
 import re
 import sys
 
+try:  # same connection settings as deploy/deploy_printer.py: the repo's .env (never committed)
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), *[".."] * 4, ".env"))
+except ImportError:
+    pass
+
 DEFAULT_HOST = os.environ.get("PRINTER_SSH_HOST", "")
 DEFAULT_USER = os.environ.get("PRINTER_SSH_USER", "pi")
 DEFAULT_PASSWORD = os.environ.get("PRINTER_SSH_PASSWORD", "")
@@ -365,6 +371,7 @@ def check_octoprint(client) -> dict:
     base = "/home/pi/.octoprint"
     cfg = run(client, f"grep -E '^(  key:|  firstRun:|  host:|  autologinLocal:|  allowCrossOrigin:|  port:)' {base}/config.yaml 2>/dev/null")
     api_key_set = "  key:" in cfg
+    cfg = re.sub(r"(  key:\s*)\S+", lambda m: m.group(1) + "<set, not shown>", cfg)  # never print the API key
     plugins = run(client, f"{venv}/bin/pip list 2>/dev/null | grep -i -E '^octoprint' ") if venv else ""
     return {
         "service_exec": unit or "(none)",

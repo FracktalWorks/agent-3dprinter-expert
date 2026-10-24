@@ -34,7 +34,7 @@ same agent runs in GitHub Copilot (VS Code) via `.github/agents/3d-printer-exper
 | Klipper source (where/why an error is raised) | `klipper_source_manager.py --locate-error "..."` |
 | ControlCenter (PyQt5 touchscreen app) | `controlcenter_reference.py --query "..."` |
 | Base OS image (Debian 13 hardening, fw-health, update policy, apply.sh) | `base-image/README.md`; `pi_system_diagnostics.py --check base-image` / `--check fw-health` |
-| Deploy/commission a printer end-to-end (Klipper, NextGen OctoPrint, ControlCenter via startx, splash) | `docs/STATUS.md` (state + next steps), `docs/DEPLOYMENT.md`; skill `deploy-printer`; `deploy/deploy_printer.py` (dry run by default) |
+| Deploy/commission a printer end-to-end (configs layout, CAN UUIDs, Klipper, NextGen OctoPrint + plugins, ControlCenter via startx, splash) | `docs/STATUS.md` (state + next steps), `docs/DEPLOYMENT.md` (§8 = everything that went wrong on the first real deployment); skill `deploy-printer`; `deploy/deploy_printer.py` (dry run by default; `verify` = full review) |
 
 All debugging scripts live in `.github/skills/3d-printer-expert/scripts/` and
 `.github/skills/klipper-knowledge-graph/scripts/`. Claude Code skill wrappers
