@@ -82,7 +82,7 @@ pgrep -f "[p]ython3 main[.]py" | while read -r p; do readlink /proc/$p/cwd 2>/de
 echo "## Webcam"
 C=/boot/firmware/config.txt; [ -f "$C" ] || C=/boot/config.txt
 cam=$(grep -oE "^dtoverlay=(ov5647|imx[0-9]+)[^ ]*" "$C" | head -1)
-gm=$(sed -n 's/^gpu_mem=\([0-9]*\).*//p' "$C" | tail -1)
+gm=$(sed -n 's/^gpu_mem=\([0-9]*\).*/\1/p' "$C" | tail -1)
 echo "camera overlay: ${cam:-none} | gpu_mem: ${gm:-default}"
 [ -n "$cam" ] && [ -n "$gm" ] && [ "$gm" -lt 64 ] && echo "!! gpu_mem=$gm loads the cut-down firmware: no camera ISP/encoder (webcam step sets 64)"
 if systemctl is-enabled -q fw-webcam 2>/dev/null; then
