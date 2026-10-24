@@ -1,0 +1,14 @@
+[Unit]
+Description=Fracktal webcam (Pi CSI camera -> MJPEG on :8080)
+After=network.target
+
+[Service]
+User=pi
+SupplementaryGroups=video render
+EnvironmentFile=-/etc/default/fw-webcam
+ExecStart=/usr/bin/python3 /usr/local/bin/fw-webcam $FW_WEBCAM_ARGS
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

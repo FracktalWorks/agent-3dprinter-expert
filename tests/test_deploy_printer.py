@@ -153,3 +153,22 @@ def test_remote_scripts_are_lf_and_executable_in_upload():
     assert any(k.endswith("octoprint-install.sh") for k in p.sftp.files)
     for path, data in p.sftp.files.items():
         assert b"\r\n" not in data, path
+
+
+def test_webcam_requires_sensor_and_dry_run_is_dry():
+    with pytest.raises(SystemExit):
+        dp.step_webcam(args(sensor=None, cam0=False, webcam_args=None), fake_printer(False))
+    p = fake_printer(False)
+    dp.step_webcam(args(sensor="ov5647", cam0=False, webcam_args=None), p)
+    assert not p.units and all("--yes" not in c for c, _ in p.cmds)
+    p = fake_printer(True)
+    dp.step_webcam(args(apply=True, sensor="ov5647", cam0=True, webcam_args="--rotate 180"), p)
+    assert p.units and p.units[0][1].endswith("--yes") and "--cam0" in p.units[0][1] and "--rotate 180" in p.units[0][1]
+
+
+def test_webcam_files_ship_lf():
+    p = fake_printer(False)
+    dp.Printer.put_dir(p, ROOT / "base-image" / "webcam", "/home/pi/fw-deploy/webcam")
+    assert {k.rsplit("/", 1)[-1] for k in p.sftp.files} >= {"fw-webcam.py", "fw-webcam.service", "install-webcam.sh"}
+    for path, data in p.sftp.files.items():
+        assert b"\r\n" not in data, path

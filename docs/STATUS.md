@@ -24,7 +24,7 @@
 | Configs | 25 files in `~/printer_data/config`, symlinks in `/home/pi` for ControlCenter. Old unused set: `~/printer_data/config.old-20261024-140739`. |
 | OctoPrint | 1.11.8.post3 in `~/OctoPrint/venv`, ControlCenter 1.1.8, TwinDragonPrintRestore 1.0.6, OctoKlipper 0.4.2; printer profile Twin Dragon 600 V2 (2 extruders, 660×620×414); config aligned with the template. Old 1.11.7 still in `~/oprint` (rollback). |
 | Touchscreen | `fw-touchui.service` (2026-10-24 16:20, `touchui --retire-legacy`): rootless X as `pi` on tty1 → ControlCenter 1.1.8 from `~/OctoPrint/venv`. Legacy autologin overrides, `startx` in `~/.bashrc` and the old `~/.xinitrc` kept as `*.pre-touchui-20261024-162029`. `verify`: 0 problems after reboot. |
-| Webcam | Set up by hand by another session (ustreamer `webcamd.service` :8080, nftables rule): not in the repos, unverified (no camera attached). |
+| Webcam | Raspberry Pi Camera v1.3 (OV5647) on the Manta's CSI connector (= CM4 CAM1): `webcam --sensor ov5647` 2026-10-24: `fw-webcam.service` 1296×972 @ 15 fps on :8080, `gpu_mem=64`, the hand-made ustreamer `webcamd` disabled; OctoPrint stream `http://192.168.0.184:8080/?action=stream`. Snapshot verified (the camera looks out of the enclosure, not at the bed). |
 | Leftovers (safe to delete) | `~/OctoPrint/venv.old-*`, `venv.failed-*`, `~/fw-deploy/pkgs/`, `~/octoprint-backup-*.tar.gz` (keep the newest), `config.yaml.pre-*`. |
 
 ## Verified vs not

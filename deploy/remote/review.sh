@@ -79,5 +79,24 @@ echo "fw-touchui: $(systemctl is-active fw-touchui)"
 for p in $(pgrep -f "[p]ython3 main[.]py"); do echo "ControlCenter pid $p from $(readlink /proc/$p/cwd 2>/dev/null || sudo -n readlink /proc/$p/cwd)"; done
 pgrep -f "[p]ython3 main[.]py" | while read -r p; do readlink /proc/$p/cwd 2>/dev/null || sudo -n readlink /proc/$p/cwd; done | grep -q "/oprint/" && echo "!! the touchscreen runs ControlCenter from the OLD venv ~/oprint: run the touchui step"
 [ "$(pgrep -c Xorg)" -gt 1 ] && echo "!! $(pgrep -c Xorg) X servers (legacy startx and the plugin's sudo startx both running): touchui --retire-legacy"
+echo "## Webcam"
+C=/boot/firmware/config.txt; [ -f "$C" ] || C=/boot/config.txt
+cam=$(grep -oE "^dtoverlay=(ov5647|imx[0-9]+)[^ ]*" "$C" | head -1)
+gm=$(sed -n 's/^gpu_mem=\([0-9]*\).*//p' "$C" | tail -1)
+echo "camera overlay: ${cam:-none} | gpu_mem: ${gm:-default}"
+[ -n "$cam" ] && [ -n "$gm" ] && [ "$gm" -lt 64 ] && echo "!! gpu_mem=$gm loads the cut-down firmware: no camera ISP/encoder (webcam step sets 64)"
+if systemctl is-enabled -q fw-webcam 2>/dev/null; then
+    code=$(curl -s -m 8 -o /dev/null -w '%{http_code}' 'http://127.0.0.1:8080/?action=snapshot')
+    echo "fw-webcam: $(systemctl is-active fw-webcam), snapshot HTTP $code"
+    [ "$code" = 200 ] || echo "!! webcam snapshot failed: journalctl -u fw-webcam -b"
+fi
+$V/bin/python - "$B" <<'PY2'
+import sys, yaml
+c = yaml.safe_load(open(sys.argv[1] + "/config.yaml"))
+w = (c.get("plugins") or {}).get("classicwebcam") or {}
+print("OctoPrint stream URL:", w.get("stream", "<default>"))
+if str(w.get("stream", "/webcam/")).startswith("/webcam/"):
+    print("!! OctoPrint stream URL /webcam/... needs OctoPi's haproxy (not on these printers): webcam step sets http://<ip>:8080/")
+PY2
 echo "## Power"
 vcgencmd get_throttled 2>/dev/null

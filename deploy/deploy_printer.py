@@ -13,6 +13,7 @@ Typical order (docs/DEPLOYMENT.md):
     python deploy/deploy_printer.py klipper   --yes --restart # klipper_IDEX Production (+ python deps)
     python deploy/deploy_printer.py octoprint --yes           # NextGen OctoPrint + ControlCenter + plugins
     python deploy/deploy_printer.py touchui   --yes --retire-legacy   # X on tty1 -> ControlCenter at boot
+    python deploy/deploy_printer.py webcam    --sensor ov5647 --yes   # Pi CSI camera -> MJPEG :8080
     python deploy/deploy_printer.py splash    --yes           # quiet boot + logo
     python deploy/deploy_printer.py commission --model twindragon-600-v2 --serial FW-0421 --yes
     python deploy/deploy_printer.py verify                    # read-only review; "!!" lines are problems
@@ -487,6 +488,21 @@ def step_touchui(args, p):
         print("   Installed. Reboot (or 'sudo systemctl start fw-touchui'). Logs: journalctl -u fw-touchui -b")
 
 
+def step_webcam(args, p):
+    say("webcam: Pi CSI camera -> MJPEG on :8080 (fw-webcam.service)")
+    if not args.sensor:
+        raise SystemExit("--sensor required: ov5647 (Camera v1.x), imx219 (v2), imx708 (v3), imx477 (HQ)")
+    p.put_dir(BASE_IMAGE / "webcam", f"{REMOTE_DIR}/webcam")
+    opts = f"--user {args.user} --sensor {args.sensor}" + (" --cam0" if args.cam0 else "")
+    if args.webcam_args:
+        opts += f" --args {shlex.quote(args.webcam_args)}"
+    rc, plan = p.run(f"sudo bash {REMOTE_DIR}/webcam/install-webcam.sh {opts}", check=False)   # dry run
+    if args.apply:  # apt install over the printer's network: run as a unit so a dropped SSH session is harmless
+        p.run_unit("fw-deploy-webcam", f"/bin/bash {REMOTE_DIR}/webcam/install-webcam.sh {opts} --yes")
+        if "REBOOT REQUIRED" in plan:
+            print("   config.txt changed: reboot the printer (ask first), then 'verify'.")
+
+
 def step_splash(args, p):
     say("splash: quiet boot + logo (Plymouth)")
     logo = Path(args.logo) if args.logo else (workspace_dir(args) / "ControlCenter" / "octoprint_ControlCenter" /
@@ -530,7 +546,7 @@ def step_verify(args, p):
 
 STEPS = {"workspace": step_workspace, "preflight": step_preflight, "inspect-ui": step_inspect_ui, "base": step_base,
          "configs": step_configs, "can": step_can, "klipper": step_klipper, "octoprint": step_octoprint,
-         "touchui": step_touchui, "splash": step_splash, "commission": step_commission, "verify": step_verify}
+         "touchui": step_touchui, "webcam": step_webcam, "splash": step_splash, "commission": step_commission, "verify": step_verify}
 
 
 def main(argv=None):
@@ -551,6 +567,9 @@ def main(argv=None):
     ap.add_argument("--stop-klipper", action="store_true", help="can: stop Klipper while scanning (claimed boards stay silent)")
     ap.add_argument("--set", nargs="+", metavar="UUID", help="can: write MCU TOOLHEAD0 [TOOLHEAD1] UUIDs into printer.cfg")
     ap.add_argument("--endstops", action="store_true", help="can: watch X endstops 2 min to tell left/right toolhead apart")
+    ap.add_argument("--sensor", help="webcam: camera sensor overlay (ov5647 = Camera v1.x, imx219, imx708, imx477)")
+    ap.add_argument("--cam0", action="store_true", help="webcam: camera on the CM4's CAM0 port (default CAM1 = Manta M8P)")
+    ap.add_argument("--webcam-args", help='webcam: fw-webcam options, e.g. "--width 1296 --height 972 --fps 15 --rotate 180"')
     ap.add_argument("--logo", help="splash: PNG to show (default: ControlCenter's splash.png)")
     ap.add_argument("--model"); ap.add_argument("--serial")
     args = ap.parse_args(argv)
