@@ -1,13 +1,13 @@
 # New-generation printer software: status and handoff (updated 2026-10-24)
 
-**Bottom line:** the stack now runs on a real printer. The reference unit (192.168.0.184, TwinDragon 600 V2) runs NextGen OctoPrint with every Fracktal component from FracktalWorks repos, and the deploy tool carries all of that deployment's lessons (`docs/DEPLOYMENT.md` section 8). What is left on that unit: `splash` and a test print (the touchscreen boot was switched over and proven on 2026-10-24). The next printer: follow `docs/DEPLOYMENT.md` / the `deploy-printer` skill from step 1.
+**Bottom line:** the stack now runs on a real printer. The reference unit (192.168.0.184, TwinDragon 600 V2) runs NextGen OctoPrint with every Fracktal component from FracktalWorks repos, and the deploy tool carries all of that deployment's lessons (`docs/DEPLOYMENT.md` section 8). What is left on that unit: install 1.11.8.post5 (it runs post3, whose update check is broken by the overlay: `octoprint --yes`), `splash`, a test print. Touchscreen and webcam were switched over and proven on 2026-10-24. The next printer: follow `docs/DEPLOYMENT.md` / the `deploy-printer` skill from step 1.
 
 ## Where everything is
 
 | Component | Repo / branch | State |
 |---|---|---|
 | Deploy tool, docs, base image, provisioning | `FracktalWorks/agent-3dprinter-expert` · `main` | `deploy/deploy_printer.py` (+ `deploy/remote/*` run on the printer), `docs/DEPLOYMENT.md`, `base-image/` (overlay, `apply.sh`, `touchui/`, `splash/`, `provision.py`, `build-image.sh`), skill `.claude/skills/deploy-printer/` |
-| OctoPrint (new generation) | `FracktalWorks/Fracktal_OctoPrint_NextGen` · `production`, **release 1.11.8.post4** | 1.11.8 + Fracktal patches (heaters, filament, branding, profile migration fix). Installer `fracktal/install-octoprint.sh` (installs ControlCenter + TwinDragonPrintRestore + OctoKlipper; restores the old OctoPrint on any failure; `--default-plugins` for uploaded archives), config template `fracktal/config/config.yaml`, release workflow on tag push. |
+| OctoPrint (new generation) | `FracktalWorks/Fracktal_OctoPrint_NextGen` · `production`, **release 1.11.8.post5** | 1.11.8 + Fracktal patches (heaters, filament, branding, profile migration fix, update checks for Fracktal components not redirected by plugins.octoprint.org's overlay: post5). Installer `fracktal/install-octoprint.sh` (installs ControlCenter + TwinDragonPrintRestore + OctoKlipper; restores the old OctoPrint on any failure; `--default-plugins` for uploaded archives), config template `fracktal/config/config.yaml`, release workflow on tag push. |
 | OctoPrint (old generation) | `FracktalWorks/Fracktal_OctoPrint` · `master` | 1.7.x, maintenance only. Its branding commit `42e774f89` is the origin of NextGen's images. |
 | ControlCenter | `FracktalWorks/ControlCenter` · `production`, **release 1.1.8** | Works on both generations. 1.1.7 and older do **not** work on NextGen printers. |
 | Print restore plugin | `FracktalWorks/TwinDragonPrintRestore` · `main`, **release 1.0.6** | Python 3.12+ / pip-isolation build fixes. |
@@ -31,7 +31,7 @@
 
 | Verified | Not yet verified |
 |---|---|
-| Reference unit: `base`, `klipper`, NextGen OctoPrint + all plugins, config layout, CAN UUIDs, OctoKlipper settings tab + editor, branding, both toolhead temperatures, heating to 200 °C, `touchui --retire-legacy` (rootless X as `pi`, survives a reboot) | `splash`, `commission`, `fw-lock-rootfs`, image build, first-boot ordering |
+| Reference unit: `base`, `klipper`, NextGen OctoPrint + all plugins, config layout, CAN UUIDs, OctoKlipper settings tab + editor, branding, both toolhead temperatures, heating to 200 °C, `touchui --retire-legacy` (rootless X as `pi`, survives a reboot), `webcam --sensor ov5647` (CSI camera, confirmed in OctoPrint) | `splash`, `commission`, `fw-lock-rootfs`, image build, first-boot ordering |
 | OctoPrint NextGen test suite in CI on every release tag (incl. profile-migration test) | A real print on Python 3.13; power-loss restore on NextGen |
 | Deploy tool: 30 unit tests (no printer needed); `deploy/remote/*.sh` syntax | The new `deploy_printer.py octoprint` path (upload + unit) end to end on a fresh printer |
 
@@ -46,7 +46,7 @@
 ## Next steps (in order)
 
 1. Reference unit: ~~`touchui`~~ done; `splash`; reboot; `verify` (expect 0 problems); confirm on the screen: logo → ControlCenter loading screen → home screen (ControlCenter 1.1.8).
-2. Reference unit: test print; temperatures, pause/resume, power-loss restore screen. Then `octoprint --yes` once more to prove the new upload/unit path (installs 1.11.8.post4).
+2. Reference unit: `octoprint --yes` (installs 1.11.8.post5 through the new upload/unit path; afterwards Settings → Software Update must check FracktalWorks without a 404), then a test print: temperatures, pause/resume, power-loss restore screen.
 3. Trace the `M500` caller (risk 3) and decide on ControlCenter's config template (risk 1).
 4. Next printer: full procedure from `workspace`; fix whatever differs in the repo first, then re-run.
 5. Image: on the finished reference unit `seal-image.sh`, read the card, `build-image.sh` on Linux, boot a spare card, `base-image/README.md` §9.5, `provision.py` + first boot.
