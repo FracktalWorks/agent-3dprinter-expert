@@ -100,7 +100,7 @@ X fits disagree (zv 43, mzv 28, ei 37.8, 2hump_ei 40.2 Hz): two close peaks,
 so `3hump_ei` was chosen to cover the 30-45 Hz band. Check that the CoreXY belt
 pair is equally tensioned and re-run X. Other Y fits: zv 35.8 Hz (6.2 %, 4900),
 ei 38.0 Hz (0 %, 2700), 2hump_ei 48.0 Hz (2500), 3hump_ei 58.6 Hz (2500).
-Raw data was `calibration_data_{x,y}_20261029_181324.csv` in the printer's config folder.
+Raw data: [`data/calibration_data_x_20261029_181324.csv`](data/calibration_data_x_20261029_181324.csv), [`data/calibration_data_y_20261029_181324.csv`](data/calibration_data_y_20261029_181324.csv) (PSD per axis + each shaper's response; plot with `klipper_IDEX/scripts/calibrate_shaper.py`).
 
 ## XY skipped-step speed test (2026-10-29)
 
