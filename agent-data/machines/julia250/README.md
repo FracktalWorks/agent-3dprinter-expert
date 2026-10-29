@@ -86,3 +86,67 @@ move per toolhead) before fixing the shared file upstream.
   steps or `G90` + `G1 X250`.
 - **Bed thermistor unplugged** = `ADC out of range` shutdown at startup
   (min_temp 0). A temporary negative min_temp gets past it for motion tests; restore it.
+
+## Input shaper (2026-10-29, SHAPER_CALIBRATE at 125,125,20, axes_map -y,-z,x)
+
+Saved in `printer.cfg` (SAVE_CONFIG block).
+
+| Axis | Recommended | Vibrations | Max accel before over-smoothing |
+|---|---|---|---|
+| X | `3hump_ei` @ 80.0 Hz | 0 % | 4700 mm/s² |
+| Y | `mzv` @ 34.4 Hz | 1.0 % | 3500 mm/s² |
+
+X fits disagree (zv 43, mzv 28, ei 37.8, 2hump_ei 40.2 Hz): two close peaks,
+so `3hump_ei` was chosen to cover the 30-45 Hz band. Check that the CoreXY belt
+pair is equally tensioned and re-run X. Other Y fits: zv 35.8 Hz (6.2 %, 4900),
+ei 38.0 Hz (0 %, 2700), 2hump_ei 48.0 Hz (2500), 3hump_ei 58.6 Hz (2500).
+Raw data was `calibration_data_{x,y}_20261029_181324.csv` in the printer's config folder.
+
+## XY skipped-step speed test (2026-10-29)
+
+Method: home X and Y, read the MCU step positions (`GET_POSITION`), run 5 loops of
+corner-to-corner diagonals plus a perimeter lap in the 25-225 mm box at the test
+speed and acceleration, re-home, compare. Lost steps show up as multiples of 16
+microsteps (1 full step = 0.2 mm at rotation_distance 40, 16 microsteps) that grow
+with speed; fail threshold was 2 full steps. Z at the top. TMC5160 1.2 A, 48 V HV IN.
+
+| Accel (mm/s²) | Speed (mm/s) | A drift | B drift | Moves | Result |
+|---|---|---|---|---|---|
+| 3500 | 200 | -2 | -10 | 47.8 s | OK |
+| 3500 | 300 | -6 | -10 | 33.9 s | OK |
+| 3500 | 400 | -5 | -13 | 27.6 s | OK |
+| 3500 | 500 | +2 | -2 | 24.2 s | OK |
+| 3500 | 600 | -18 | -20 | 22.3 s | OK |
+| 3500 | 700 | +2 / -7 | -8 / -11 | 21.4 s | OK (run twice) |
+| 3500 | 800 | -1 | -1 | 20.9 s | OK |
+| 3500 | 900 | -3 | -7 | 20.8 s | OK |
+| 3500 | 1000 | +7 | -3 | 20.7 s | OK |
+| 8000 | 700 | -4 | -4 | 16.8 s | OK |
+| 8000 | 800 | -2 | -2 | 15.7 s | OK |
+| 8000 | 900 | -2 | -4 | 14.9 s | OK |
+| 8000 | 1000 | -1 | -5 | 14.5 s | OK |
+| 10000 | 1000 | -5 | -5 | 13.4 s | OK |
+
+Drift is in microsteps and does not grow with speed: it is endstop repeatability
+(about +-0.25 mm worst case), not skipping. At 3500 mm/s² a 200 mm side tops out
+near 835 mm/s, so speeds above that were not really reached; that is why the
+times barely change from 800 to 1000. The motor limit was not found.
+
+**About 2 s after the 10000 mm/s² run, the machine lost power** (klippy.log stops
+mid-write at 18:34:42, with no MCU, CAN or TMC error before it). Whether it was
+switched off or the 48 V supply dropped out under deceleration is still open:
+do not go above 8000 mm/s² until that is answered.
+
+Suggested `[printer]` limits (not applied yet): `max_velocity: 600`,
+`max_accel: 3500` (Y shaper limit), raise acceleration per print in the slicer
+when speed matters more than detail.
+
+## Power loss right after G28 reverted printer.cfg (2026-10-29)
+
+After that power loss, `printer.cfg` was an Oct-24 TwinDragon version (wrong CAN
+UUIDs, Klipper stuck in `startup`) and the three newest `printer-*.cfg` backups
+were 0 bytes. The Fracktal homing_override runs `SAVE_CONFIG NO_RESTART=1` on every
+G28, and `/` is ext4 `commit=60`, so a power cut within about a minute of homing
+can lose printer.cfg. Recovery: restore the newest non-empty `printer-*.cfg`
+backup (here `printer-20261029_183440.cfg`), `sync`, restart Klipper. The wrong
+file was kept as `printer.cfg.twindragon-after-powerloss`.
