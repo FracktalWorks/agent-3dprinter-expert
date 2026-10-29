@@ -16,6 +16,10 @@
 
 ## Reference unit 192.168.0.184 (as of 2026-10-24 15:30)
 
+> **Since 2026-10-29 this CM4 runs a different machine: JULIA250** (CoreXY 250 x 250 x 300,
+> BTT Manta M5P + TD-01 CAN toolhead). The OS/OctoPrint stack below is unchanged; the
+> TwinDragon electronics and CAN UUIDs are gone. See `agent-data/machines/julia250/README.md`.
+
 | | State |
 |---|---|
 | OS / power | Debian 13, kernel 6.18, CM4 1 GB, **Wi-Fi only** (`eth0` down), no undervoltage. `base` applied (hardware watchdog 15 s). |
