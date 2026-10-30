@@ -6,12 +6,15 @@ electronics are new.
 
 | | |
 |---|---|
-| Kinematics | CoreXY, single nozzle, 250 x 250 x 300 (Z endstop at Z max, `position_endstop` 300) |
-| Main board | BTT Manta M5P V1.0, STM32G0B1, USB-to-CAN bridge, `canbus_uuid 28fd68d251e1` |
+| Kinematics | CoreXY, single nozzle, 250 x 250 x 295 (Z endstop at Z max, `position_endstop` 295 since 2026-10-30, `variable_bed_z_max` 290 (set on the printer); the bed mesh says the real travel is about 299, see below) |
+| Main board | BTT Manta M5P V1.0, STM32G0B1, USB-to-CAN bridge, `canbus_uuid 90b4e5c54d1f` (replacement board; the first, faulty one was `28fd68d251e1`) |
 | Toolhead | TD-01 RP2040, CAN 1 Mbit/s, `canbus_uuid 0b9c82a2706e` (`TOOLHEADS_TD-01_TOOLHEAD0.cfg`) |
-| Drivers | M1 = A (`stepper_x`), M2 = B (`stepper_y`), M3 = Z: TMC5160 on software SPI (SCK PB13, MISO PB14, MOSI PB15), CS PD9/PD8/PB10. Extruder TMC2209 on the toolhead |
-| Endstops | X min on the toolhead (gpio7), Y max on MIN2 (PD2), Z max on MIN3 (PC3) |
-| Bed | HB PA5, TB PA0, EPCOS 100K |
+| Drivers | M2 = A (`stepper_x`, CS PD8), M1 = B (`stepper_y`, CS PD9), M3 = Z (CS PB10): TMC5160 on software SPI (SCK PB13, MISO PB14, MOSI PB15). Extruder TMC2209 on the toolhead, plus `extruder_stepper extruder_side0` on M4 (TMC5160, CS PB2, `rotation_distance` 7.710 from the Dragon, not verified), synced to it as on the Dragon |
+| Endstops | X min on the toolhead (gpio7), Y max on MIN1 (PD3), Z max on MIN2 (PD2) (moved 2026-10-30) |
+| Filament sensors | T0 runout switch on MIN3 (PC3), T0 jam/motion encoder on MIN4 (PC2), in BASE_JULIA.cfg (the shared T0_FILAMENT_* files use M8P pins) |
+| Bed | Heater on HE0 (PC5), thermistor on TH0 (PA1), EPCOS 100K (moved from HB PA5 / TB PA0 on 2026-10-30) |
+| Chamber heater | `[heater_generic Chamber]` on HE1 (PA7), thermistor ATC Semitec 104GT-2 on TH1 (PA2), `gcode_id: C`, macros `M141`/`M191`/`CHAMBER_OFF`; from ControlCenter `firmware/CHAMBER_HEATER.cfg`, PID not tuned |
+| Always-on fan | FAN1 (PA3), `[output_pin fan1_always_on]` value 1, shutdown_value 1 |
 | Probe | PC15 (Probe / IND-DET header) |
 
 Files in `config/` are what is deployed to `~/printer_data/config` (symlinked in
@@ -42,10 +45,14 @@ Klipper `ready`; both MCUs on CAN, 0 rx/tx errors; TMC5160 X/Y/Z answer on SPI
    the power switch.
 3. Endstop polarity: `QUERY_ENDSTOPS` with each switch pressed must read `TRIGGERED`.
 4. `rotation_distance` X/Y 40 (GT2 20T pulley, set 2026-10-29) and Z 4 @ 8 microsteps: measure 100 mm moves.
-5. Travel and endstop positions (X 0, Y 250, Z 300: real Z travel not yet measured) and `position_min` Z -6.
+5. Travel and endstop positions (X 0, Y 250, Z 295) and `position_min` Z -6. The
+   2026-10-30 bed mesh triggered at Z -3.5 to -4.6, so Z 0 is above the bed: set
+   `position_endstop` from a measured nozzle-to-bed distance before printing.
 6. Z current 1.0 A, `sense_resistor` 0.075 (BTT TMC5160 module): check the module.
 7. Probe pin polarity (`QUERY_PROBE` triggered vs open); `z_offset` reset to 0.
-8. Bed PID is the Dragon's: `PID_CALIBRATE HEATER=heater_bed TARGET=60`.
+8. Bed PID is the Dragon's: `PID_CALIBRATE HEATER=heater_bed TARGET=60`. The bed
+   output on HE0 has not been heated yet. Chamber PID is the template's:
+   `PID_CALIBRATE HEATER=Chamber TARGET=50`.
 9. Speeds are conservative (300 mm/s, 3000 mm/s², SCV 5): raise after input shaping.
 10. `ptfe_tube_length` 900 and bed calibration points are placeholders.
 11. Webcam: the OV5647 does not answer on I2C (`i2c read error`), check the ribbon.
@@ -150,3 +157,100 @@ G28, and `/` is ext4 `commit=60`, so a power cut within about a minute of homing
 can lose printer.cfg. Recovery: restore the newest non-empty `printer-*.cfg`
 backup (here `printer-20261029_183440.cfg`), `sync`, restart Klipper. The wrong
 file was kept as `printer.cfg.twindragon-after-powerloss`.
+
+## 2026-10-30: wiring changes, bed mesh, chamber heater, touchscreen
+
+### Speed test
+
+1000 mm/s at 8000 mm/s² (same method as above): passed, no skipped steps.
+
+### Driver sockets: M4/M5 "dead" was missing jumpers
+
+The extruder TMC5160 was silent on SPI (`IOIN ffffffff`, `version=0xff`, then
+`Unable to write tmc spi ... GLOBALSCALER` at enable) in M4 and in M5, and a
+known-good Z module was silent there too, while both modules answered in M3.
+Cause: SPI-mode / VM jumpers not fitted under M4/M5. After fitting them, Z on M3 and
+`extruder_side0` on M4 both answer (`IOIN 30000050`, `version=0x30`). Same lesson as
+the replacement board: **when a module answers in one socket and not another,
+compare the jumpers under the two sockets first.** GSTAT `00000005` (reset + uv_cp)
+right after power-on is normal.
+
+The motor had first been plugged into **M3B**, which is a second connector wired in
+parallel to the M3 (Z) driver, not a separate driver.
+
+### Z travel 295 and bed mesh
+
+`position_endstop` / `position_max` / `variable_bed_z_max` set 300 -> 295. A 5x5
+`BED_MESH_CALIBRATE` (25-225 mm) then stopped after 4 points:
+
+| Point | Probe triggered at |
+|---|---|
+| 25, 25 | Z -4.615 |
+| 75, 25 | Z -3.700 |
+| 125, 25 | Z -3.473 |
+| 175, 25 | Z -3.803 |
+| 225, 25 | no trigger down to Z -6 (`position_min`): `No trigger on probe after full movement` |
+
+So the bed is about 299 mm below the Z max endstop, not 295, and the front-right corner
+is more than 2 mm lower than its neighbour (or the probe does not see the bed there).
+Klipper leaves the nozzle at `position_min` after this error: raise Z before anything
+else. Mesh is now `probe_count: 3,3` in `PRINTER_JULIA250.cfg`; Klipper logs
+`Forcing lagrange interpolation` because bicubic needs 4+ points per axis (harmless).
+The 3x3 mesh has not been run yet.
+
+### Bed and chamber heaters
+
+- Bed moved to HE0 (PC5) / TH0 (PA1). Reads room temperature; not heated yet.
+- Chamber heater added to `BASE_JULIA.cfg` from ControlCenter's
+  `firmware/CHAMBER_HEATER.cfg` (no Dragon config has one), pins HE1 (PA7) / TH1 (PA2).
+  Reads 28 C. Use `M141 S<t>` (set), `M191 S<t>` (set and wait), `CHAMBER_OFF`;
+  `M105` reports it as `C:`.
+
+### OctoPrint and ControlCenter changes (on the printer only)
+
+These are not in any repo. A ControlCenter upgrade/reinstall undoes the first two.
+
+| Change | File on the printer | Backup |
+|---|---|---|
+| Julia shows the chamber (home screen reading, bed/chamber toggle on the temperature screen, `M141 S0` on Cool Down) | ControlCenter `utils/printer_ui_config.py`: `CHAMBER_HEATER_PRINTERS = {'TWINDRAGON_400_HT', 'JULIA250'}` | `printer_ui_config.py.pre-julia-chamber` |
+| Selecting the printer on the touchscreen keeps the chamber on | ControlCenter `config/JULIA250.profile` (new; copy of the Julia profile with `heatedChamber: true`) | none (new file) |
+| OctoPrint shows and controls the chamber | `~/.octoprint/printerProfiles/_default.profile`: `heatedChamber: true` (via `PATCH /api/printerprofiles/_default`) | `_default.profile.pre-chamber` |
+
+Upstream fix (ControlCenter repo, reference-only here: team lead decision): add
+JULIA250 to `CHAMBER_HEATER_PRINTERS`, ship `JULIA250.profile`. Note the shipped
+`TWINDRAGON_400_HT.profile` also has `heatedChamber: false`, so OctoPrint does not
+report the HT's chamber either. The OctoPrint profile height is still 300 (Z is 295).
+
+The chamber control on the touchscreen is the existing bed/chamber toggle (the wide
+bed-icon button above the bed set-point); it was checked with remote taps and
+screenshots.
+
+### FAN1 always on: not spinning yet
+
+`[output_pin fan1_always_on]` on PA3 (FAN1 in BTT's M5P sample config) reads
+`value: 1.0`, but the fan did not spin. Open: the M5P fan-voltage jumper next to
+FAN0/FAN1 (no jumper = no supply), the fan's voltage against the jumper setting,
+plug polarity.
+
+### 3.5 inch display: `QT_SCALE_FACTOR` does not work
+
+ControlCenter is laid out with fixed geometry for 800 x 480 (`config.py`
+`SCREEN_WIDTH`/`SCREEN_HEIGHT`, absolute positions in the `.ui` files). Setting
+`QT_SCALE_FACTOR=0.6` in `~/.xinitrc` shrank the window to 480 x 288 but every page
+drew empty and cropped: reverted (`~/.xinitrc.pre-3.5inch`). For a 480 x 320 HDMI
+panel, scale the 800 x 480 output in X instead (xrandr `--scale-from 800x480`); an
+SPI TFT needs its overlay first. A 480 x 320 downscale of the screens is readable.
+
+### Remote touchscreen checks
+
+The touchscreen can be driven over SSH without extra packages: screenshot with
+`DISPLAY=:0 XAUTHORITY=/home/pi/.Xauthority ffmpeg -f x11grab -video_size 800x480 -i :0 -frames:v 1 shot.png`,
+tap with a few lines of Python calling `libXtst.so.6` `XTestFakeMotionEvent` /
+`XTestFakeButtonEvent` through ctypes. Control screen = sliders button at (400, 393)
+on the home screen.
+
+### Unexplained reboot
+
+Between about 16:45 and 17:57 the Pi dropped off Wi-Fi and came back freshly booted
+(up 3 min at 18:00). Cause not checked: run `pi_system_diagnostics.py --check power`
+and look at the previous boot's journal.
