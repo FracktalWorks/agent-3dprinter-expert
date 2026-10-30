@@ -208,7 +208,11 @@ The 3x3 mesh has not been run yet.
 
 ### OctoPrint and ControlCenter changes (on the printer only)
 
-These are not in any repo. A ControlCenter upgrade/reinstall undoes the first two.
+Copies are in this folder: [`controlcenter/`](controlcenter/) (`printer_ui_config.patch`, `JULIA250.profile`)
+and [`octoprint/_default.profile`](octoprint/_default.profile). A ControlCenter upgrade/reinstall undoes the
+first two. To re-apply, from the installed `octoprint_ControlCenter` folder (1.1.8):
+`patch -p0 utils/printer_ui_config.py < printer_ui_config.patch`, copy `JULIA250.profile` into `config/`,
+then `sudo systemctl restart fw-touchui`. They are not in the ControlCenter repo.
 
 | Change | File on the printer | Backup |
 |---|---|---|

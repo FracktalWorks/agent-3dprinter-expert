@@ -1,0 +1,11 @@
+--- utils/printer_ui_config.py.pre-julia-chamber	2026-10-30 16:31:40.847501136 +0530
++++ utils/printer_ui_config.py	2026-10-30 16:31:40.849170839 +0530
+@@ -64,7 +64,7 @@
+ }
+ 
+ # Printers (printer.cfg include names) that have a chamber heater
+-CHAMBER_HEATER_PRINTERS = {'TWINDRAGON_400_HT'}
++CHAMBER_HEATER_PRINTERS = {'TWINDRAGON_400_HT', 'JULIA250'}
+ 
+ # UI elements that should only be shown for chamber heater printers
+ CHAMBER_HEATER_ELEMENTS = {
