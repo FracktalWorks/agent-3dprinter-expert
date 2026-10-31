@@ -15,6 +15,7 @@ electronics are new.
 | Bed | Heater on HE0 (PC5), thermistor on TH0 (PA1), EPCOS 100K (moved from HB PA5 / TB PA0 on 2026-10-30) |
 | Chamber heater | `[heater_generic Chamber]` on HE1 (PA7), thermistor ATC Semitec 104GT-2 on TH1 (PA2), `gcode_id: C`, macros `M141`/`M191`/`CHAMBER_OFF`; from ControlCenter `firmware/CHAMBER_HEATER.cfg`, PID not tuned |
 | Always-on fan | FAN1 (PA3), `[output_pin fan1_always_on]` value 1, shutdown_value 1 |
+| HEPA filter fan | FAN0 (PA4), `[output_pin hepa_fan]`, switched by `[delayed_gcode HEPA_FAN_CONTROL]`: on only while the bed reads 100 C or more (see 2026-10-31) |
 | Probe | PC15 (Probe / IND-DET header) |
 
 Files in `config/` are what is deployed to `~/printer_data/config` (symlinked in
@@ -258,3 +259,12 @@ on the home screen.
 Between about 16:45 and 17:57 the Pi dropped off Wi-Fi and came back freshly booted
 (up 3 min at 18:00). Cause not checked: run `pi_system_diagnostics.py --check power`
 and look at the previous boot's journal.
+
+## HEPA filter fan (2026-10-31)
+
+On at bed temperature >= 100 C, off below it, checked every 2 s. Port not stated at setup:
+FAN0 (PA4) was used because FAN1 is the always-on fan. A macro loop reads the actual
+temperature because Klipper `heater_fan` runs whenever a target is set, whatever the
+temperature; there is no hysteresis, so the fan can toggle if the bed sits right at 100 C.
+Checked: off at 29 C, and a forced `SET_PIN` is switched back off by the loop. Not yet
+checked: a real heat to 100 C (the bed on HE0 has not been heated) and the fan itself.
