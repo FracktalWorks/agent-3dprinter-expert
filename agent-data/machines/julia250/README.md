@@ -266,5 +266,14 @@ On at bed temperature >= 100 C, off below it, checked every 2 s. Port not stated
 FAN0 (PA4) was used because FAN1 is the always-on fan. A macro loop reads the actual
 temperature because Klipper `heater_fan` runs whenever a target is set, whatever the
 temperature; there is no hysteresis, so the fan can toggle if the bed sits right at 100 C.
-Checked: off at 29 C, and a forced `SET_PIN` is switched back off by the loop. Not yet
-checked: a real heat to 100 C (the bed on HE0 has not been heated) and the fan itself.
+Checked: reads off at 29 C after a restart. Not yet checked: the on/off switching itself
+(a real heat to 100 C, the bed on HE0 has not been heated) and the fan.
+
+### Power cuts 2026-10-31
+
+The machine restarted around 10:37, 11:25 and 11:29 (not commanded from here). The session
+before the last one stops at 138 s with no error, shutdown or CAN fault, so it was a power
+cut, not a crash. `printer.cfg` reverted to TwinDragon again (Klipper `Unable to connect`,
+old UUIDs) and was restored from `printer-20261031_112704.cfg`, see the power-loss section.
+Timestamps just after boot are unreliable: the clock starts stale and jumps once synced,
+so backup file times do not date the cut. No undervoltage flag after these boots.
